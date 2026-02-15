@@ -28,3 +28,7 @@ Lliam_Security_Review.docx
 *.db
 *.sqlite
 sessions/
+
+# Stale nested copies (cleanup artifacts)
+src/src/
+lliam/
