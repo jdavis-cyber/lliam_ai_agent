@@ -1,0 +1,20 @@
+{
+  "id": "core.echo",
+  "name": "Echo Tool",
+  "version": "1.0.0",
+  "description": "Simple echo tool for testing the plugin system. Echoes back input with optional transformation.",
+  "kind": "general",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "prefix": {
+        "type": "string",
+        "description": "Optional prefix to add before echoed text"
+      },
+      "uppercase": {
+        "type": "boolean",
+        "description": "Whether to uppercase the echoed text"
+      }
+    }
+  }
+}

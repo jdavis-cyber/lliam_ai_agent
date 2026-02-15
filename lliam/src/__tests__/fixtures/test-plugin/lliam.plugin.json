@@ -1,0 +1,7 @@
+{
+  "id": "test.basic",
+  "name": "Test Plugin",
+  "version": "0.1.0",
+  "description": "Minimal plugin for unit testing",
+  "kind": "general"
+}
