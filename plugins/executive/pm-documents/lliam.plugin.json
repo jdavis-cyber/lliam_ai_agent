@@ -1,0 +1,22 @@
+{
+  "id": "executive.pm-documents",
+  "name": "PM Documents",
+  "version": "1.0.0",
+  "description": "Generate project management artifacts and documents using PMI-aligned templates. Produces project charters, risk registers, RACI matrices, stakeholder engagement plans, status reports, WBS dictionaries, lessons learned registers, and change requests — all grounded in PMI terminology via the PM Knowledge Base.",
+  "kind": "general",
+  "dependencies": ["executive.pm-knowledge"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "outputPath": {
+        "type": "string",
+        "description": "Directory path where generated artifacts are saved (default: './pm-artifacts')"
+      },
+      "defaultFormat": {
+        "type": "string",
+        "enum": ["markdown", "structured"],
+        "description": "Output format: 'markdown' for human-readable documents, 'structured' for JSON (default: 'markdown')"
+      }
+    }
+  }
+}

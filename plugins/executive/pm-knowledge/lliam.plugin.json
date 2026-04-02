@@ -1,0 +1,28 @@
+{
+  "id": "executive.pm-knowledge",
+  "name": "PM Knowledge Base",
+  "version": "1.0.0",
+  "description": "Enterprise PM knowledge foundation. Indexes your organization's licensed standards library (PMBOK, PRINCE2, SAFe, internal docs) into local vector storage for semantic retrieval. Ships with a built-in PMI ontology covering PMBOK process groups, knowledge areas, risk categories, stakeholder engagement levels, and EVM formulas.",
+  "kind": "general",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "knowledgeBasePath": {
+        "type": "string",
+        "description": "Absolute path to directory containing PDFs and docs to index. Set this to your organization's licensed standards library."
+      },
+      "chunkSize": {
+        "type": "number",
+        "description": "Characters per chunk for document splitting (default: 800)"
+      },
+      "chunkOverlap": {
+        "type": "number",
+        "description": "Characters of overlap between adjacent chunks (default: 150)"
+      },
+      "reindexOnStart": {
+        "type": "boolean",
+        "description": "Force re-index all documents on every startup (default: false — uses mtime-based incremental indexing)"
+      }
+    }
+  }
+}

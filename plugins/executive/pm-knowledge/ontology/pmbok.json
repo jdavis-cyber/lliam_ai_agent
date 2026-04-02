@@ -1,0 +1,328 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "PMI-aligned PM ontology. Original work grounded in public PMI framework documentation. Does not reproduce licensed PMI content.",
+    "references": ["PMBOK 7th Edition (2021)", "PMI Process Groups: A Practice Guide", "PMI Risk Management Practice Guide", "PMI Standard for Program Management 5th Ed"]
+  },
+  "processGroups": {
+    "Initiating": {
+      "name": "Initiating",
+      "description": "Processes that authorize and define a new project or phase, establishing scope and objectives",
+      "purpose": "Obtain authorization, align stakeholder expectations, define initial scope and constraints",
+      "keyOutputs": ["Project Charter", "Stakeholder Register", "Business Case Review"],
+      "typicalDuration": "2–4% of total project effort",
+      "criticalSuccessFactors": ["Executive sponsorship", "Clear business case", "Defined success criteria"]
+    },
+    "Planning": {
+      "name": "Planning",
+      "description": "Processes that develop actionable strategies for achieving project objectives within constraints",
+      "purpose": "Define scope, schedule, budget, quality, resource, communications, risk, and procurement approaches",
+      "keyOutputs": ["Project Management Plan", "Requirements Documentation", "Schedule Baseline", "Cost Baseline", "Risk Register", "Stakeholder Engagement Plan"],
+      "typicalDuration": "15–25% of total project effort",
+      "criticalSuccessFactors": ["Stakeholder input", "Realistic estimating", "Risk identification completeness"]
+    },
+    "Executing": {
+      "name": "Executing",
+      "description": "Processes that complete the work defined in the project management plan to satisfy project specifications",
+      "purpose": "Produce deliverables, manage team performance, execute procurements, implement quality assurance",
+      "keyOutputs": ["Deliverables", "Work Performance Data", "Change Requests", "Issue Log Updates"],
+      "typicalDuration": "60–70% of total project effort",
+      "criticalSuccessFactors": ["Clear accountability (RACI)", "Change control discipline", "Stakeholder engagement"]
+    },
+    "Monitoring & Controlling": {
+      "name": "Monitoring & Controlling",
+      "description": "Processes that track, review, and regulate project progress and performance; identify areas requiring changes",
+      "purpose": "Measure performance against baselines, manage changes, verify deliverables, monitor risks",
+      "keyOutputs": ["Work Performance Reports", "Change Log", "Corrective Actions", "Validated Deliverables"],
+      "typicalDuration": "Overlaps all phases — continuous activity",
+      "criticalSuccessFactors": ["Baseline integrity", "Earned value measurement", "Change control board effectiveness"]
+    },
+    "Closing": {
+      "name": "Closing",
+      "description": "Processes that finalize all activities to formally complete or close the project, phase, or contract",
+      "purpose": "Transfer deliverables, archive records, release resources, document lessons learned, obtain final acceptance",
+      "keyOutputs": ["Final Project Report", "Lessons Learned Register", "Closed Contracts", "Released Resources"],
+      "typicalDuration": "2–5% of total project effort",
+      "criticalSuccessFactors": ["Formal acceptance", "Lessons learned capture", "Knowledge transfer completeness"]
+    }
+  },
+  "knowledgeAreas": {
+    "Integration Management": {
+      "code": "INT",
+      "description": "Unifies and coordinates project management processes and activities across all knowledge areas",
+      "processGroup": ["Initiating", "Planning", "Executing", "Monitoring & Controlling", "Closing"],
+      "keyProcesses": ["Develop Project Charter", "Develop Project Management Plan", "Direct and Manage Project Work", "Monitor and Control Project Work", "Perform Integrated Change Control", "Close Project or Phase"],
+      "primaryArtifacts": ["Project Charter", "Project Management Plan", "Change Log", "Lessons Learned Register"],
+      "keyRoles": ["Project Manager", "Project Sponsor", "PMO"],
+      "commonChallenges": ["Scope creep", "Change control discipline", "Competing priorities across knowledge areas"]
+    },
+    "Scope Management": {
+      "code": "SCOPE",
+      "description": "Ensures the project includes all and only the work required to complete it successfully",
+      "processGroup": ["Planning", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Scope Management", "Collect Requirements", "Define Scope", "Create WBS", "Validate Scope", "Control Scope"],
+      "primaryArtifacts": ["Scope Management Plan", "Requirements Documentation", "Requirements Traceability Matrix", "Project Scope Statement", "WBS", "WBS Dictionary"],
+      "keyRoles": ["Business Analyst", "Project Manager", "Requirements Manager"],
+      "commonChallenges": ["Scope creep", "Ambiguous requirements", "Stakeholder disagreement on boundaries"]
+    },
+    "Schedule Management": {
+      "code": "SCHED",
+      "description": "Ensures timely completion of the project through sequencing, estimation, and schedule control",
+      "processGroup": ["Planning", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Schedule Management", "Define Activities", "Sequence Activities", "Estimate Activity Durations", "Develop Schedule", "Control Schedule"],
+      "primaryArtifacts": ["Schedule Management Plan", "Activity List", "Network Diagram", "Schedule Baseline", "Schedule Variance Report"],
+      "keyRoles": ["Project Manager", "Scheduler", "Team Leads"],
+      "keyFormulas": {
+        "SV": "EV − PV  (positive = ahead of schedule)",
+        "SPI": "EV ÷ PV  (>1.0 = ahead; <1.0 = behind)"
+      },
+      "commonChallenges": ["Optimism bias in estimates", "Resource contention", "Dependency management"]
+    },
+    "Cost Management": {
+      "code": "COST",
+      "description": "Ensures the project is completed within the approved budget through estimation, budgeting, and cost control",
+      "processGroup": ["Planning", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Cost Management", "Estimate Costs", "Determine Budget", "Control Costs"],
+      "primaryArtifacts": ["Cost Management Plan", "Activity Cost Estimates", "Cost Baseline", "Project Funding Requirements"],
+      "keyRoles": ["Project Manager", "Cost Estimator", "Financial Controller"],
+      "keyFormulas": {
+        "CV": "EV − AC  (positive = under budget)",
+        "CPI": "EV ÷ AC  (>1.0 = under budget; <1.0 = over budget)",
+        "EAC (typical)": "BAC ÷ CPI",
+        "EAC (atypical)": "AC + (BAC − EV)",
+        "VAC": "BAC − EAC",
+        "TCPI": "(BAC − EV) ÷ (BAC − AC)  (efficiency needed to finish on budget)"
+      },
+      "commonChallenges": ["Estimation accuracy", "Scope changes driving cost growth", "Reserve management"]
+    },
+    "Quality Management": {
+      "code": "QUAL",
+      "description": "Ensures the project and deliverables satisfy the requirements for which they were undertaken",
+      "processGroup": ["Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Quality Management", "Perform Quality Assurance", "Control Quality"],
+      "primaryArtifacts": ["Quality Management Plan", "Quality Metrics", "Quality Checklists", "Test Results", "Process Improvement Plan"],
+      "keyRoles": ["Quality Manager", "QA Analyst", "Project Manager"],
+      "commonChallenges": ["Balancing quality vs. schedule/cost", "Defect prevention vs. inspection", "Customer acceptance criteria clarity"]
+    },
+    "Resource Management": {
+      "code": "RES",
+      "description": "Identifies, acquires, and manages the resources needed to successfully execute the project",
+      "processGroup": ["Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Resource Management", "Estimate Activity Resources", "Acquire Resources", "Develop Team", "Manage Team", "Control Resources"],
+      "primaryArtifacts": ["Resource Management Plan", "RACI Matrix", "Team Charter", "Resource Calendars", "Team Performance Assessments"],
+      "keyRoles": ["Project Manager", "Resource Manager", "HR Business Partner"],
+      "commonChallenges": ["Resource availability conflicts", "Skills gaps", "Remote/distributed team coordination"]
+    },
+    "Communications Management": {
+      "code": "COMM",
+      "description": "Ensures timely, appropriate planning, collection, creation, distribution, and management of project information",
+      "processGroup": ["Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Communications Management", "Manage Communications", "Monitor Communications"],
+      "primaryArtifacts": ["Communications Management Plan", "Status Reports", "Meeting Minutes", "Project Correspondence"],
+      "keyRoles": ["Project Manager", "Communications Lead", "Stakeholder Manager"],
+      "formula": "N × (N−1) ÷ 2  (communication channels for N stakeholders)",
+      "commonChallenges": ["Information overload", "Stakeholder communication preferences", "Distributed teams and time zones"]
+    },
+    "Risk Management": {
+      "code": "RISK",
+      "description": "Increases likelihood and impact of positive events while decreasing likelihood and impact of negative events",
+      "processGroup": ["Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Risk Management", "Identify Risks", "Perform Qualitative Risk Analysis", "Perform Quantitative Risk Analysis", "Plan Risk Responses", "Implement Risk Responses", "Monitor Risks"],
+      "primaryArtifacts": ["Risk Management Plan", "Risk Register", "Risk Report", "Probability-Impact Matrix"],
+      "keyRoles": ["Risk Manager", "Project Manager", "SMEs", "Risk Response Owners"],
+      "keyFormulas": {
+        "EMV": "Probability × Monetary Impact",
+        "Risk Score": "Probability × Impact (1–5 scale)",
+        "Risk Exposure": "Probability × Schedule/Cost Impact"
+      },
+      "responseStrategies": {
+        "threats": ["Avoid", "Transfer", "Mitigate", "Accept (Active)", "Accept (Passive)", "Escalate"],
+        "opportunities": ["Exploit", "Share", "Enhance", "Accept", "Escalate"]
+      },
+      "commonChallenges": ["Risk identification completeness", "Probability estimation bias", "Risk response ownership"]
+    },
+    "Procurement Management": {
+      "code": "PROC",
+      "description": "Processes to purchase or acquire products, services, or results needed from outside the project team",
+      "processGroup": ["Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Plan Procurement Management", "Conduct Procurements", "Control Procurements"],
+      "primaryArtifacts": ["Procurement Management Plan", "Source Selection Criteria", "RFP/RFQ/IFB", "Contracts", "Procurement Performance Reports"],
+      "keyRoles": ["Procurement Manager", "Contracting Officer", "Vendor Manager"],
+      "contractTypes": {
+        "Fixed Price": "FFP, FPIF, FP-EPA — seller bears cost risk",
+        "Cost Reimbursable": "CPFF, CPIF, CPAF — buyer bears cost risk",
+        "Time & Materials": "T&M — hybrid; suitable for ambiguous scope"
+      },
+      "commonChallenges": ["Vendor performance management", "Contract ambiguity", "Sole source justification"]
+    },
+    "Stakeholder Management": {
+      "code": "STAKE",
+      "description": "Identifies and manages the people, groups, and organizations that can affect or be affected by the project",
+      "processGroup": ["Initiating", "Planning", "Executing", "Monitoring & Controlling"],
+      "keyProcesses": ["Identify Stakeholders", "Plan Stakeholder Engagement", "Manage Stakeholder Engagement", "Monitor Stakeholder Engagement"],
+      "primaryArtifacts": ["Stakeholder Register", "Stakeholder Engagement Assessment Matrix", "Stakeholder Engagement Plan"],
+      "keyRoles": ["Project Manager", "Executive Sponsor", "Change Manager"],
+      "engagementLevels": ["Unaware", "Resistant", "Neutral", "Supportive", "Leading"],
+      "commonChallenges": ["Identifying all stakeholders early", "Managing resistant stakeholders", "Maintaining engagement across long programs"]
+    }
+  },
+  "riskCategories": {
+    "Technical": {
+      "description": "Risks arising from technology, tools, technical feasibility, system integration, or architecture complexity",
+      "examples": ["Unproven technology stack", "Integration complexity with legacy systems", "Third-party API instability", "Cybersecurity vulnerabilities", "Data migration failures"],
+      "impactAreas": ["Schedule", "Cost", "Quality"],
+      "typicalResponseStrategies": ["Prototyping/proof of concept", "Technical spike", "Fallback architecture", "Vendor SLA enforcement"]
+    },
+    "Organizational": {
+      "description": "Risks from staffing, skills, culture, organizational change, or resource availability",
+      "examples": ["Key person dependency", "Staff turnover during critical phase", "Organizational restructuring", "Skills gaps", "Change fatigue from multiple simultaneous initiatives"],
+      "impactAreas": ["Schedule", "Cost", "Quality"],
+      "typicalResponseStrategies": ["Cross-training", "Knowledge documentation", "Succession planning", "Resource pooling agreements"]
+    },
+    "External": {
+      "description": "Risks from forces outside the project team's control: regulatory, market, environmental, geopolitical",
+      "examples": ["Regulatory changes affecting scope", "Market shift reducing project value", "Supplier bankruptcy", "Natural disaster", "Geopolitical instability affecting supply chain"],
+      "impactAreas": ["Scope", "Schedule", "Cost"],
+      "typicalResponseStrategies": ["Regulatory monitoring", "Diversified supplier base", "Insurance/transfer", "Contingency reserves"]
+    },
+    "Schedule": {
+      "description": "Risks that directly threaten timeline and milestone achievement",
+      "examples": ["Dependency slippage from predecessor projects", "Estimation errors discovered late", "Rework from quality failures", "Scope creep consuming schedule buffer"],
+      "impactAreas": ["Schedule", "Cost"],
+      "typicalResponseStrategies": ["Schedule reserve", "Fast-tracking", "Crashing", "Scope reduction", "Critical path monitoring"]
+    },
+    "Financial": {
+      "description": "Risks affecting project budget, funding continuity, or financial performance",
+      "examples": ["Cost overruns on labor", "Unexpected licensing costs", "Currency fluctuation", "Budget rescission", "Vendor price escalation"],
+      "impactAreas": ["Cost", "Scope"],
+      "typicalResponseStrategies": ["Cost reserves", "Fixed-price contracts", "Funding tranches", "Scope prioritization (MoSCoW)"]
+    },
+    "Stakeholder": {
+      "description": "Risks from stakeholder behavior, resistance, competing priorities, or disengagement",
+      "examples": ["Executive sponsor disengagement", "Key stakeholder resistance to change", "Competing organizational priorities diverting resources", "Decision-making delays from governance gaps"],
+      "impactAreas": ["Schedule", "Scope", "Stakeholder Satisfaction"],
+      "typicalResponseStrategies": ["Stakeholder engagement plan", "Executive escalation path", "Change management program", "Decision rights clarity"]
+    }
+  },
+  "stakeholderEngagement": {
+    "Unaware": {
+      "level": 1,
+      "definition": "Stakeholder is unaware of the project and its potential impact",
+      "characteristics": ["No knowledge of project existence", "Cannot advocate or resist", "Potential surprise if impacted"],
+      "strategies": ["Awareness communications", "Information distribution plan", "Kick-off meeting invitation", "Project newsletter enrollment"],
+      "riskIfUnaddressed": "Stakeholder blindsided at critical moment; reactive resistance"
+    },
+    "Resistant": {
+      "level": 2,
+      "definition": "Stakeholder is aware of the project but opposes or resists the change it represents",
+      "characteristics": ["May actively block progress", "Represents highest engagement risk", "Often has legitimate concerns worth understanding"],
+      "strategies": ["One-on-one discussions to surface concerns", "Demonstrate WIIFM (What's In It For Me)", "Involve in solution design", "Address grievances directly", "Leverage respected peers as change agents"],
+      "riskIfUnaddressed": "Active sabotage, escalations to leadership, organizational friction"
+    },
+    "Neutral": {
+      "level": 3,
+      "definition": "Stakeholder is aware of the project but neither supports nor opposes it",
+      "characteristics": ["Fence-sitter; easily moved in either direction", "May become resistant if ignored", "Often has capacity to become Supportive with right engagement"],
+      "strategies": ["Regular updates highlighting relevance to their priorities", "Involve in decisions affecting their domain", "Build personal relationship", "Share early wins"],
+      "riskIfUnaddressed": "Drift toward resistance; missed opportunity for advocacy"
+    },
+    "Supportive": {
+      "level": 4,
+      "definition": "Stakeholder is aware of and supports the project and its objectives",
+      "characteristics": ["Positive about project outcomes", "Will provide information and resources when asked", "Valuable but not yet proactive"],
+      "strategies": ["Maintain engagement through regular updates", "Recognize and acknowledge contributions", "Invite to be spokesperson with peers", "Keep informed of progress"],
+      "riskIfUnaddressed": "Support erodes if they feel taken for granted or uninformed"
+    },
+    "Leading": {
+      "level": 5,
+      "definition": "Stakeholder actively champions the project and leads others toward its success",
+      "characteristics": ["Most valuable engagement state", "Drives organizational adoption", "Advocates with leadership and peers"],
+      "strategies": ["Empower with decision authority in their domain", "Recognize publicly", "Leverage as co-presenter with leadership", "Involve in planning and retrospectives"],
+      "riskIfUnaddressed": "Champion burnout; loss of most effective change agent"
+    }
+  },
+  "evm": {
+    "variables": {
+      "BAC": "Budget at Completion — total approved project budget",
+      "PV": "Planned Value — budgeted cost of work scheduled through reporting date",
+      "EV": "Earned Value — budgeted cost of work actually completed through reporting date",
+      "AC": "Actual Cost — total costs incurred for work completed through reporting date"
+    },
+    "variances": {
+      "SV": { "formula": "EV − PV", "positive": "ahead of schedule", "negative": "behind schedule", "zero": "on schedule" },
+      "CV": { "formula": "EV − AC", "positive": "under budget", "negative": "over budget", "zero": "on budget" }
+    },
+    "performanceIndices": {
+      "SPI": { "formula": "EV ÷ PV", "above1": "ahead of schedule", "below1": "behind schedule", "healthyFloor": 0.9 },
+      "CPI": { "formula": "EV ÷ AC", "above1": "under budget", "below1": "over budget", "healthyFloor": 0.95 }
+    },
+    "forecasting": {
+      "EAC_typical": { "formula": "BAC ÷ CPI", "use": "When current performance is expected to continue" },
+      "EAC_atypical": { "formula": "AC + (BAC − EV)", "use": "When current variance is a one-time event" },
+      "EAC_with_SPI": { "formula": "AC + [(BAC − EV) ÷ (CPI × SPI)]", "use": "When both cost and schedule are concerns" },
+      "VAC": { "formula": "BAC − EAC", "positive": "projected under-run", "negative": "projected overrun" },
+      "TCPI": { "formula": "(BAC − EV) ÷ (BAC − AC)", "interpretation": "Required CPI to complete on budget; >1.0 means must work more efficiently than to date" },
+      "ETC": { "formula": "EAC − AC", "interpretation": "Remaining estimated cost to complete" }
+    }
+  },
+  "programManagement": {
+    "definitionVsProject": "A program is a group of related projects managed in a coordinated way to obtain benefits not available from managing them individually.",
+    "benefitsRealization": {
+      "definition": "The practice of ensuring project/program outcomes are translated into measurable business benefits",
+      "phases": ["Identify Benefits", "Execute Benefits Plan", "Sustain Benefits", "Review Benefits"],
+      "artifacts": ["Benefits Register", "Benefits Realization Plan", "Benefits Measurement Baseline"]
+    },
+    "governanceStructure": {
+      "programBoard": "Decision-making body providing strategic direction and resolving escalated issues",
+      "programManager": "Accountable for benefit delivery and stakeholder alignment across constituent projects",
+      "projectManagers": "Accountable for individual project delivery within program constraints",
+      "PMO": "Provides standards, methods, and oversight across the program portfolio"
+    }
+  },
+  "artifactTemplates": {
+    "projectCharter": {
+      "purpose": "Formally authorize the project and provide authority to the project manager",
+      "processGroup": "Initiating",
+      "requiredSections": ["Project Name and ID", "Business Case and Justification", "Project Objectives (SMART)", "High-Level Scope", "High-Level Deliverables", "Assumptions and Constraints", "High-Level Risks", "Summary Milestone Schedule", "Approved Budget Range", "Stakeholder Summary", "Project Manager Authority Level", "Sponsor Authorization"],
+      "optionalSections": ["Benefits Realization Summary", "Success Criteria and Acceptance Criteria", "Organizational Impacts"]
+    },
+    "riskRegister": {
+      "purpose": "Central repository for all identified risks, their analyses, and response plans",
+      "processGroup": "Planning / Monitoring & Controlling",
+      "requiredColumns": ["Risk ID", "Date Identified", "Description", "Category", "Probability (1-5)", "Impact (1-5)", "Risk Score", "Priority", "Owner", "Response Strategy", "Response Description", "Residual Probability", "Residual Impact", "Contingency Plan", "Trigger Condition", "Status"],
+      "optionalColumns": ["WBS Element", "EMV ($)", "Secondary Risks", "Notes"]
+    },
+    "raciMatrix": {
+      "purpose": "Clarify roles and responsibilities for all major deliverables and work packages",
+      "processGroup": "Planning",
+      "definitions": {
+        "R": "Responsible — does the work",
+        "A": "Accountable — owns the outcome; approves completion; only one per row",
+        "C": "Consulted — provides input; two-way communication",
+        "I": "Informed — receives updates; one-way communication"
+      },
+      "rules": ["Exactly one A per row (work package)", "At least one R per row", "Avoid too many C/I (signals over-communication)", "RACI gaps signal governance risk"]
+    },
+    "stakeholderEngagementPlan": {
+      "purpose": "Define strategies to move stakeholders from current to desired engagement level",
+      "processGroup": "Planning",
+      "requiredSections": ["Stakeholder Identification Summary", "Power/Interest Grid", "Current vs. Desired Engagement Matrix", "Engagement Strategies by Stakeholder", "Communication Frequency and Channels", "Escalation Path", "Review Cadence"]
+    },
+    "statusReport": {
+      "purpose": "Communicate project health, progress, and forecast to stakeholders",
+      "processGroup": "Monitoring & Controlling",
+      "requiredSections": ["Reporting Period", "Overall Status (RAG)", "Schedule Status (RAG + SPI)", "Budget Status (RAG + CPI)", "Scope Status", "Top Risks", "Key Accomplishments", "Issues and Blockers", "Decisions Required", "Next Period Outlook"],
+      "ragDefinitions": {
+        "Green": "On track; no issues requiring escalation",
+        "Amber": "Concerns exist but manageable within current plan; monitoring required",
+        "Red": "Significant issue; requires immediate attention or decision from leadership"
+      }
+    },
+    "lessonsLearned": {
+      "purpose": "Capture knowledge from the project to improve future performance",
+      "processGroup": "Closing (also during execution for long projects)",
+      "requiredSections": ["Project Summary", "What Went Well", "What Could Be Improved", "Root Cause Analysis of Issues", "Recommendations for Future Projects", "Process Improvements", "Tool and Technology Insights"],
+      "bestPractices": ["Conduct during project, not only at end", "Include all team members", "Focus on systemic issues not individuals", "Action the recommendations — don't shelf the document"]
+    }
+  }
+}
