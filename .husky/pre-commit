@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# ── npm audit: fail on high/critical vulnerabilities ────────────────────────
+echo "🔍 Running npm audit..."
+npm audit --audit-level=high
+if [ $? -ne 0 ]; then
+  echo "❌ npm audit found high/critical vulnerabilities. Fix before committing."
+  exit 1
+fi
+
+echo "✅ Dependency audit passed."

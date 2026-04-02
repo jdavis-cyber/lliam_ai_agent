@@ -6,13 +6,15 @@
  *   1. before_tool_call hooks (can modify params or block execution)
  *   2. Actual tool execution
  *   3. after_tool_call hooks (observe result, no modification)
- *
- * All tool invocations are logged for audit trail.
+ *   4. In-memory log (capped, for current session diagnostics)
+ *   5. Durable audit log via AuditLogger (R-07, R-10)
+ *      — params are SHA-256 hashed, never written in full
  */
 
 import type { ToolResult } from "../types/index.js";
 import type { PluginTool } from "../plugin/types.js";
 import type { HookRunner } from "../plugin/hook-runner.js";
+import { auditLogger } from "../security/audit-logger.js";
 
 // ─── Tool Execution Log ─────────────────────────────────────────────────────
 
@@ -51,16 +53,10 @@ export class ToolExecutor {
     }
   }
 
-  /**
-   * Get a tool by name.
-   */
   getTool(name: string): PluginTool | undefined {
     return this.tools.get(name);
   }
 
-  /**
-   * Get all available tool names.
-   */
   getToolNames(): string[] {
     return Array.from(this.tools.keys());
   }
@@ -88,7 +84,7 @@ export class ToolExecutor {
    *   2. Run before_tool_call hooks (may modify params or block)
    *   3. Execute tool
    *   4. Run after_tool_call hooks
-   *   5. Log execution
+   *   5. Log to in-memory ring buffer + durable audit log (params hashed)
    *   6. Return result
    */
   async execute(
@@ -105,7 +101,7 @@ export class ToolExecutor {
         content: `Tool "${toolName}" not found`,
         isError: true,
       };
-      this.logExecution({
+      const entry: ToolExecutionLog = {
         toolName,
         toolCallId,
         params,
@@ -114,7 +110,8 @@ export class ToolExecutor {
         durationMs: Date.now() - startTime,
         error: "Tool not found",
         timestamp: startTime,
-      });
+      };
+      this.logExecution(entry, sessionId);
       return result;
     }
 
@@ -131,7 +128,7 @@ export class ToolExecutor {
         content: `Tool call blocked: ${hookResult.blockReason ?? "Blocked by plugin"}`,
         isError: true,
       };
-      this.logExecution({
+      const entry: ToolExecutionLog = {
         toolName,
         toolCallId,
         params,
@@ -140,11 +137,11 @@ export class ToolExecutor {
         blockReason: hookResult.blockReason,
         durationMs: Date.now() - startTime,
         timestamp: startTime,
-      });
+      };
+      this.logExecution(entry, sessionId);
       return result;
     }
 
-    // Use (possibly modified) params from hooks
     const finalParams = hookResult.params;
 
     // ── 2. Execute tool ───────────────────────────────────────────────────
@@ -164,7 +161,6 @@ export class ToolExecutor {
     const durationMs = Date.now() - startTime;
 
     // ── 3. Run after_tool_call hooks ──────────────────────────────────────
-    // Fire-and-forget — errors don't affect the result
     await this.hookRunner.run("after_tool_call", {
       toolName,
       toolCallId,
@@ -174,8 +170,8 @@ export class ToolExecutor {
       durationMs,
     });
 
-    // ── 4. Log execution ──────────────────────────────────────────────────
-    this.logExecution({
+    // ── 4. Log (in-memory + durable) ──────────────────────────────────────
+    const entry: ToolExecutionLog = {
       toolName,
       toolCallId,
       params: finalParams,
@@ -184,33 +180,36 @@ export class ToolExecutor {
       durationMs,
       error,
       timestamp: startTime,
-    });
+    };
+    this.logExecution(entry, sessionId);
 
     return result;
   }
 
   // ─── Execution Log ──────────────────────────────────────────────────────
 
-  /**
-   * Get the execution log (most recent first).
-   */
   getLog(): readonly ToolExecutionLog[] {
     return this.executionLog;
   }
 
-  /**
-   * Clear the execution log.
-   */
   clearLog(): void {
     this.executionLog = [];
   }
 
-  private logExecution(entry: ToolExecutionLog): void {
+  private logExecution(entry: ToolExecutionLog, sessionId?: string): void {
+    // ── In-memory ring buffer (diagnostics) ───────────────────────────────
     this.executionLog.unshift(entry);
-
-    // Trim log to max size
     if (this.executionLog.length > this.maxLogSize) {
       this.executionLog = this.executionLog.slice(0, this.maxLogSize);
+    }
+
+    // ── Durable audit log (R-07, R-10) ────────────────────────────────────
+    // Params are hashed inside auditLogger.log() — never written in plaintext
+    try {
+      auditLogger.log(entry, sessionId ?? "unknown");
+    } catch {
+      // Audit log failure must not crash the agent
+      // In a production hardened environment this would alert on-call
     }
   }
 }

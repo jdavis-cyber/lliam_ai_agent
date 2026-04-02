@@ -2,10 +2,11 @@
  * AgentRunner Factory
  *
  * Single place to bootstrap the full plugin-enabled agent pipeline:
- *   1. Load plugins from core + user directories
- *   2. Create HookRunner from registry
- *   3. Create ToolExecutor from registry
- *   4. Return a factory fn that creates AgentRunner instances per session
+ *   1. Initialize KeyManager (AES-256-GCM key from macOS Keychain) — R-01, R-02
+ *   2. Load plugins from core + user directories
+ *   3. Create HookRunner from registry
+ *   4. Create ToolExecutor from registry (with durable audit logging) — R-07, R-10
+ *   5. Return a factory fn that creates AgentRunner instances per session
  *
  * All entry points (CLI, WebSocket, channels) use this factory so that
  * plugins are loaded once and shared across all sessions.
@@ -19,22 +20,16 @@ import { loadPlugins } from "../plugin/loader.js";
 import { HookRunner } from "../plugin/hook-runner.js";
 import { ToolExecutor } from "./tool-executor.js";
 import { AgentRunner, type AgentRunnerConfig } from "./agent-runner.js";
+import { keyManager } from "../security/key-manager.js";
 import type { AgentConfig } from "../types/index.js";
 import type { PluginRegistry } from "../plugin/registry.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface RunnerFactory {
-  /** Create a new AgentRunner sharing the loaded plugin registry */
   create(agentConfig: AgentConfig, apiKey?: string): AgentRunner;
-
-  /** The shared plugin registry (for diagnostics/status) */
   registry: PluginRegistry;
-
-  /** The shared HookRunner */
   hookRunner: HookRunner;
-
-  /** The shared ToolExecutor */
   toolExecutor: ToolExecutor;
 }
 
@@ -43,28 +38,27 @@ export interface RunnerFactory {
 /**
  * Bootstrap the plugin system and return a factory for creating AgentRunners.
  * Call this once at server startup, then use factory.create() per session.
+ *
+ * Initializes KeyManager first — all downstream storage (sessions, SQLite)
+ * will encrypt/decrypt transparently once the key is in memory.
  */
 export async function bootstrapRunnerFactory(options: {
-  /** Extra plugin directories to load from */
   extraPluginDirs?: string[];
-  /** Per-plugin config overrides */
   pluginConfigs?: Record<string, Record<string, unknown>>;
-  /** Plugin IDs to disable */
   disabledPlugins?: string[];
 }): Promise<RunnerFactory> {
   const { extraPluginDirs = [], pluginConfigs = {}, disabledPlugins = [] } = options;
+
+  // ── 1. Initialize encryption key (R-01, R-02) ─────────────────────────
+  await keyManager.init();
+  console.log("  KeyManager: ready (AES-256-GCM, key in memory only).");
 
   // Resolve the project root relative to this file
   const thisFile = fileURLToPath(import.meta.url);
   const projectRoot = resolve(thisFile, "../../../");
 
-  // Core plugins (shipped with Lliam)
   const corePluginsDir = join(projectRoot, "plugins", "core");
-
-  // Executive plugins (the ones we just built)
   const executivePluginsDir = join(projectRoot, "plugins", "executive");
-
-  // User plugins (~/.lliam/plugins)
   const userPluginsDir = join(homedir(), ".lliam", "plugins");
 
   const searchPaths = [
@@ -74,9 +68,9 @@ export async function bootstrapRunnerFactory(options: {
     ...extraPluginDirs.map((dir) => ({ dir, origin: "user" as const })),
   ];
 
+  // ── 2. Load plugins ───────────────────────────────────────────────────
   const registry = await loadPlugins({ searchPaths, pluginConfigs, disabledPlugins });
 
-  // Log plugin load summary
   const summary = registry.getSummary();
   console.log(`  Plugins loaded: ${summary.plugins} (${summary.tools} tools, ${summary.hooks} hooks)`);
 
@@ -85,10 +79,12 @@ export async function bootstrapRunnerFactory(options: {
     console.warn(`  Plugin error [${err.pluginId}]: ${err.message}`);
   }
 
+  // ── 3. Create shared runner components ────────────────────────────────
   const hookRunner = new HookRunner(registry);
-  const toolExecutor = new ToolExecutor(registry, hookRunner);
+  const toolExecutor = new ToolExecutor(hookRunner);
+  toolExecutor.setTools(registry.resolveTools());
 
-  // Start all registered services
+  // ── 4. Start services ─────────────────────────────────────────────────
   const services = registry.getServices();
   for (const svc of services) {
     try {

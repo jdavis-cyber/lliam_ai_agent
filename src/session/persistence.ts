@@ -1,7 +1,29 @@
+/**
+ * Session Persistence — encrypted file-system storage for session transcripts.
+ *
+ * Security (R-01 — NIST SP 800-53 SC-28):
+ * - Each session JSON is encrypted with AES-256-GCM via KeyManager before write.
+ * - Files written atomically (write to temp → rename) to prevent corruption.
+ * - File permissions set to 0600 (owner read/write only).
+ * - Directory permissions set to 0700 (owner only).
+ * - Auto-migration: legacy plaintext .json files are re-encrypted on first read.
+ */
+
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSync, readFileSync, chmodSync, statSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+  readFileSync,
+  chmodSync,
+  statSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { Message } from "../types/index.js";
+import { keyManager } from "../security/key-manager.js";
 
 // ─── Session Transcript Types ───────────────────────────────────────────────
 
@@ -37,12 +59,12 @@ export interface SessionStorage {
 // ─── File System Implementation ─────────────────────────────────────────────
 
 /**
- * Stores session transcripts as JSON files on disk.
+ * Stores session transcripts as AES-256-GCM encrypted files on disk.
  *
- * Security:
- * - Files written atomically (write to temp → rename) to prevent corruption
- * - File permissions set to 0600 (owner read/write only)
- * - Directory permissions set to 0700 (owner only)
+ * File layout on disk: [ version:1 | iv:12 | authTag:16 | encrypted JSON ]
+ * If KeyManager is not ready (not initialized), falls back to plaintext with
+ * a console warning — this should not happen in production where runner-factory
+ * always calls keyManager.init() before constructing storage.
  */
 export class FileSystemSessionStorage implements SessionStorage {
   private dir: string;
@@ -71,7 +93,8 @@ export class FileSystemSessionStorage implements SessionStorage {
   }
 
   /**
-   * Load a session transcript from disk.
+   * Load a session transcript from disk, decrypting if necessary.
+   * Auto-migrates legacy plaintext files to encrypted on first read.
    * Returns null if the session doesn't exist.
    */
   loadSession(sessionId: string): SessionTranscript | null {
@@ -79,8 +102,28 @@ export class FileSystemSessionStorage implements SessionStorage {
     if (!existsSync(filepath)) return null;
 
     try {
-      const raw = readFileSync(filepath, "utf-8");
-      const parsed = JSON.parse(raw) as SessionTranscript;
+      const rawBuffer = readFileSync(filepath);
+
+      let json: string;
+
+      if (keyManager.isReady() && keyManager.isEncrypted(rawBuffer)) {
+        // Normal path: decrypt
+        const plainBuffer = keyManager.decrypt(rawBuffer);
+        json = plainBuffer.toString("utf-8");
+      } else if (keyManager.isReady() && !keyManager.isEncrypted(rawBuffer)) {
+        // Migration path: legacy plaintext file — re-encrypt and save
+        json = rawBuffer.toString("utf-8");
+        console.warn(`  Session ${sessionId}: migrating plaintext file to encrypted storage.`);
+        const encrypted = keyManager.encrypt(Buffer.from(json, "utf-8"));
+        const tmpPath = filepath + `.tmp.${Date.now()}`;
+        writeFileSync(tmpPath, encrypted, { mode: 0o600 });
+        renameSync(tmpPath, filepath);
+      } else {
+        // KeyManager not ready — read plaintext (startup edge case only)
+        json = rawBuffer.toString("utf-8");
+      }
+
+      const parsed = JSON.parse(json) as SessionTranscript;
 
       // Basic validation
       if (!parsed.sessionId || !parsed.messages) {
@@ -89,16 +132,13 @@ export class FileSystemSessionStorage implements SessionStorage {
 
       return parsed;
     } catch {
-      // Corrupted file — return null rather than crash
+      // Corrupted or tampered file — return null rather than crash
       return null;
     }
   }
 
   /**
-   * Save a session transcript to disk atomically.
-   *
-   * Atomic write: write to a temp file first, then rename.
-   * This prevents corruption if the process crashes mid-write.
+   * Save a session transcript to disk — encrypted and atomic.
    */
   saveSession(transcript: SessionTranscript): void {
     transcript.modified = Date.now();
@@ -106,13 +146,19 @@ export class FileSystemSessionStorage implements SessionStorage {
 
     const filepath = this.sessionPath(transcript.sessionId);
     const tempPath = filepath + `.tmp.${Date.now()}`;
-
     const json = JSON.stringify(transcript, null, 2);
 
-    // Write to temp file
-    writeFileSync(tempPath, json, { encoding: "utf-8", mode: 0o600 });
+    let dataToWrite: Buffer;
 
-    // Atomic rename
+    if (keyManager.isReady()) {
+      dataToWrite = keyManager.encrypt(Buffer.from(json, "utf-8"));
+    } else {
+      // Fallback: plaintext (should not happen in production)
+      console.warn("  KeyManager not initialized — session written as plaintext.");
+      dataToWrite = Buffer.from(json, "utf-8");
+    }
+
+    writeFileSync(tempPath, dataToWrite, { mode: 0o600 });
     renameSync(tempPath, filepath);
   }
 
@@ -133,7 +179,7 @@ export class FileSystemSessionStorage implements SessionStorage {
 
   /**
    * List all sessions with summary metadata (no full message content).
-   * Sorted by most recently modified first.
+   * Sorted by most recently modified first. Reads and decrypts each file.
    */
   listSessions(): SessionSummary[] {
     if (!existsSync(this.dir)) return [];
@@ -143,11 +189,11 @@ export class FileSystemSessionStorage implements SessionStorage {
 
     for (const file of files) {
       try {
-        const raw = readFileSync(join(this.dir, file), "utf-8");
-        const parsed = JSON.parse(raw) as SessionTranscript;
+        const sessionId = file.replace(".json", "");
+        const transcript = this.loadSession(sessionId);
+        if (!transcript) continue;
 
-        // Extract preview from last user message
-        const lastUserMsg = [...parsed.messages]
+        const lastUserMsg = [...transcript.messages]
           .reverse()
           .find((m) => m.role === "user");
         const preview = lastUserMsg
@@ -155,20 +201,18 @@ export class FileSystemSessionStorage implements SessionStorage {
           : undefined;
 
         summaries.push({
-          sessionId: parsed.sessionId,
-          title: parsed.title,
-          created: parsed.created,
-          modified: parsed.modified,
-          messageCount: parsed.messageCount,
+          sessionId: transcript.sessionId,
+          title: transcript.title,
+          created: transcript.created,
+          modified: transcript.modified,
+          messageCount: transcript.messageCount,
           preview,
         });
       } catch {
-        // Skip corrupted files
         continue;
       }
     }
 
-    // Sort by most recently modified
     summaries.sort((a, b) => b.modified - a.modified);
     return summaries;
   }
@@ -185,7 +229,6 @@ export class FileSystemSessionStorage implements SessionStorage {
    * Sanitizes the session ID to prevent path traversal attacks.
    */
   private sessionPath(sessionId: string): string {
-    // Sanitize: only allow UUID characters (alphanumeric + hyphens)
     const sanitized = sessionId.replace(/[^a-zA-Z0-9-]/g, "");
     if (sanitized !== sessionId || sanitized.length === 0) {
       throw new Error(`Invalid session ID: ${sessionId}`);
@@ -200,7 +243,6 @@ export class FileSystemSessionStorage implements SessionStorage {
     if (!existsSync(this.dir)) {
       mkdirSync(this.dir, { recursive: true, mode: 0o700 });
     } else {
-      // Verify permissions on existing directory
       try {
         const stats = statSync(this.dir);
         const mode = stats.mode & 0o777;
@@ -208,7 +250,7 @@ export class FileSystemSessionStorage implements SessionStorage {
           chmodSync(this.dir, 0o700);
         }
       } catch {
-        // Best effort — permission check may fail on some systems
+        // Best effort
       }
     }
   }
