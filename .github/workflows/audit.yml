@@ -1,0 +1,39 @@
+name: Dependency Security Audit
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Weekly Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (high+critical)
+        run: npm audit --audit-level=high
+
+      - name: socket.dev supply chain scan
+        run: |
+          npm install -g @socketsecurity/cli
+          socket scan create . --json > audit-socket-$(date +%Y-%m-%d).json || true
+          cat audit-socket-$(date +%Y-%m-%d).json
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.run_id }}
+          path: audit-socket-*.json
+          retention-days: 90
