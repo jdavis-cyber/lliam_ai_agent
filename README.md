@@ -22,7 +22,6 @@ Lliam is a fully functional personal executive assistant, powered by Claude. It 
 - **Commitments and errands** — tracks tasks, commitments, and follow-ups across sessions
 - **Fitness and diet logging** — accepts natural language workout and meal descriptions; logs metrics over time
 - **Web search** — real-time lookup via Brave Search API (no key required for DuckDuckGo fallback)
-- **NotebookLM integration** — stages research documents to Google Drive, reads NotebookLM exports back
 - **Voice channel** — real-time conversation via Gemini 3.1 Flash Live (WebSocket audio, function calling, barge-in support)
 
 All of these are implemented as plugins. The core agent loop, memory system, and gateway are separate from the capabilities — which means the surface area is auditable and the capabilities are replaceable.
@@ -52,7 +51,7 @@ All of these are implemented as plugins. The core agent loop, memory system, and
 ┌──────▼──────────────────────────────────────────────────────┐
 │                  Executive Plugins                           │
 │  daily-brief · commitments · fitness · web-search           │
-│  notebooklm · gemini-voice                                  │
+│  gemini-voice                                               │
 └─────────────────────────────────────────────────────────────┘
        │
 ┌──────▼──────────────────────────────────────────────────────┐
@@ -108,7 +107,7 @@ The architecture maps to the following standards:
 | Validation | `Zod` — runtime schema enforcement |
 | Gateway | Express 5 + `ws` WebSocket server |
 | Voice | Gemini 3.1 Flash Live (`gemini-3.1-flash-live-preview`) |
-| GWS integration | GWS CLI — Gmail, Calendar, Drive, NotebookLM |
+| GWS integration | GWS CLI — Gmail, Calendar, Drive |
 | Testing | Vitest (280+ tests) |
 
 ---
