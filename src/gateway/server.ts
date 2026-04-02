@@ -11,6 +11,7 @@ import { SessionManager } from "../session/manager.js";
 import { FileSystemSessionStorage } from "../session/persistence.js";
 import { expandHome, type AppConfig } from "../config/schema.js";
 import { ChannelHandler } from "./channel-handler.js";
+import { bootstrapRunnerFactory, type RunnerFactory } from "../core/runner-factory.js";
 
 // ─── Gateway Server ─────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ export interface GatewayServerState {
   wsHandler: WebSocketHandler;
   sessionManager: SessionManager;
   channelHandler: ChannelHandler | null;
+  runnerFactory: RunnerFactory;
   startedAt: number;
   heartbeatInterval: ReturnType<typeof setInterval> | null;
 }
@@ -44,6 +46,13 @@ export async function startGatewayServer(
 
   const storage = new FileSystemSessionStorage(dataDir, config.sessions.dir);
   const sessionManager = new SessionManager(storage);
+
+  // ─── Plugin System Bootstrap ────────────────────────────────────────
+
+  console.log("  Loading plugins...");
+  const runnerFactory = await bootstrapRunnerFactory({
+    pluginConfigs: (config as AppConfig & { pluginConfigs?: Record<string, Record<string, unknown>> }).pluginConfigs ?? {},
+  });
 
   // ─── Auth ───────────────────────────────────────────────────────────
 
@@ -95,6 +104,7 @@ export async function startGatewayServer(
     agentConfig: agent,
     auth,
     rateLimitPerMinute: gateway.rateLimitPerMinute,
+    runnerFactory,
   });
 
   // Handle WebSocket upgrade
@@ -156,6 +166,7 @@ export async function startGatewayServer(
     channelHandler = new ChannelHandler({
       sessionManager,
       agentConfig: agent,
+      runnerFactory,
       telegram: channels.telegram?.enabled ? channels.telegram : undefined,
       imessage: channels.imessage?.enabled ? channels.imessage : undefined,
     });
@@ -173,6 +184,7 @@ export async function startGatewayServer(
     wsHandler,
     sessionManager,
     channelHandler,
+    runnerFactory,
     startedAt,
     heartbeatInterval,
   };

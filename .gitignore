@@ -13,6 +13,8 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
+# macOS AppleDouble metadata files (ExFAT volume artifacts)
+._*
 
 # IDE
 .vscode/

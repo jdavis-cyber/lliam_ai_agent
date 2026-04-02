@@ -1,0 +1,7 @@
+{
+  "id": "executive.commitments",
+  "name": "Commitments & Errands Tracker",
+  "version": "1.0.0",
+  "description": "Personal commitment and errand tracking. Stores items in local memory with due dates, priority, and category. Works like an executive assistant's task pad.",
+  "kind": "general"
+}

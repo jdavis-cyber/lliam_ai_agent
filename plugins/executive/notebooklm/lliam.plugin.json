@@ -1,0 +1,7 @@
+{
+  "id": "executive.notebooklm",
+  "name": "NotebookLM Bridge",
+  "version": "1.0.0",
+  "description": "Integrates with Google NotebookLM via GWS CLI. Upload sources, query notebooks, and export AI-generated summaries and study guides as Drive artifacts.",
+  "kind": "general"
+}

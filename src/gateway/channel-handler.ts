@@ -6,9 +6,9 @@
  * agent pipeline as WebSocket messages.
  */
 
-import { Agent } from "../core/agent.js";
 import type { SessionManager } from "../session/manager.js";
 import type { AgentConfig } from "../types/index.js";
+import type { RunnerFactory } from "../core/runner-factory.js";
 import { ChannelRegistry, type ChannelEventListener } from "../channel/registry.js";
 import { TelegramAdapter } from "../channel/telegram/adapter.js";
 import { IMessageAdapter } from "../channel/imessage/adapter.js";
@@ -46,6 +46,7 @@ class ChannelSessionMap {
 export interface ChannelHandlerConfig {
   sessionManager: SessionManager;
   agentConfig: AgentConfig;
+  runnerFactory: RunnerFactory;
   telegram?: TelegramChannelConfig;
   imessage?: IMessageChannelConfig;
 }
@@ -56,12 +57,14 @@ export class ChannelHandler {
   private registry: ChannelRegistry;
   private sessionManager: SessionManager;
   private agentConfig: AgentConfig;
+  private runnerFactory: RunnerFactory;
   private sessionMap = new ChannelSessionMap();
 
   constructor(config: ChannelHandlerConfig) {
     this.registry = new ChannelRegistry();
     this.sessionManager = config.sessionManager;
     this.agentConfig = config.agentConfig;
+    this.runnerFactory = config.runnerFactory;
 
     // Register adapters based on config
     if (config.telegram && config.telegram.enabled) {
@@ -161,19 +164,12 @@ export class ChannelHandler {
       },
     });
 
-    // 3. Create agent with history
-    const agent = new Agent(this.agentConfig);
+    // 3. Get conversation history
     const history = this.sessionManager.getHistory(sessionId);
 
-    // Load history (skip last since we'll send it fresh)
-    for (const msg of history.slice(0, -1)) {
-      if (msg.role === "user" || msg.role === "assistant") {
-        agent["conversationHistory"].push(msg);
-      }
-    }
-
-    // 4. Execute agent (no streaming for channel messages)
-    const response = await agent.executeMessage(message.text);
+    // 4. Execute via plugin-enabled AgentRunner (no streaming for channel messages)
+    const runner = this.runnerFactory.create(this.agentConfig);
+    const response = await runner.runMessage(message.text, sessionId, history);
 
     // 5. Save assistant message
     await this.sessionManager.addMessage(sessionId, {

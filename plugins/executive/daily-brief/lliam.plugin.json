@@ -1,0 +1,20 @@
+{
+  "id": "executive.daily-brief",
+  "name": "Daily Brief",
+  "version": "1.0.0",
+  "description": "Morning briefing plugin. Pulls Gmail unread messages and Google Calendar events for the day via GWS CLI, then synthesizes a structured executive brief.",
+  "kind": "general",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "lookAheadDays": {
+        "type": "number",
+        "description": "Number of days ahead to include in calendar scan (default: 1)"
+      },
+      "maxEmails": {
+        "type": "number",
+        "description": "Maximum unread emails to surface (default: 10)"
+      }
+    }
+  }
+}

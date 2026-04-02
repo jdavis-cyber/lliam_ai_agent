@@ -1,0 +1,7 @@
+{
+  "id": "executive.fitness",
+  "name": "Fitness & Diet Logger",
+  "version": "1.0.0",
+  "description": "Log workouts, meals, and body metrics. Tracks progress toward fitness goals. Optimized for voice-friendly input — accepts natural language descriptions.",
+  "kind": "general"
+}

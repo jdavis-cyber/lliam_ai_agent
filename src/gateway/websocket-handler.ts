@@ -1,8 +1,8 @@
 import type { WebSocket } from "ws";
-import { Agent } from "../core/agent.js";
 import type { SessionManager } from "../session/manager.js";
 import type { AgentConfig } from "../types/index.js";
 import { ApiKeyAuthenticator } from "./auth.js";
+import type { RunnerFactory } from "../core/runner-factory.js";
 import {
   parseRequestFrame,
   successResponse,
@@ -55,6 +55,7 @@ export class WebSocketHandler {
   private agentConfig: AgentConfig;
   private auth: ApiKeyAuthenticator | null;
   private rateLimitPerMinute: number;
+  private runnerFactory: RunnerFactory;
   private connections: Set<ConnectionState> = new Set();
 
   constructor(options: {
@@ -62,11 +63,13 @@ export class WebSocketHandler {
     agentConfig: AgentConfig;
     auth: ApiKeyAuthenticator | null;
     rateLimitPerMinute: number;
+    runnerFactory: RunnerFactory;
   }) {
     this.sessionManager = options.sessionManager;
     this.agentConfig = options.agentConfig;
     this.auth = options.auth;
     this.rateLimitPerMinute = options.rateLimitPerMinute;
+    this.runnerFactory = options.runnerFactory;
   }
 
   /**
@@ -204,16 +207,8 @@ export class WebSocketHandler {
       timestamp: Date.now(),
     });
 
-    // Create agent with conversation history
-    const agent = new Agent(this.agentConfig);
+    // Get conversation history for this session
     const history = this.sessionManager.getHistory(resolvedSessionId);
-
-    // Rebuild agent history (skip last message since we'll send it fresh)
-    for (const msg of history.slice(0, -1)) {
-      if (msg.role === "user" || msg.role === "assistant") {
-        agent["conversationHistory"].push(msg);
-      }
-    }
 
     // Acknowledge the request
     this.send(ws, successResponse(requestId, {
@@ -221,9 +216,12 @@ export class WebSocketHandler {
       status: "streaming",
     }));
 
+    // Create plugin-enabled AgentRunner for this request
+    const runner = this.runnerFactory.create(this.agentConfig);
+
     try {
-      // Stream response
-      const response = await agent.executeMessage(message, (chunk: string) => {
+      // Stream response via AgentRunner (supports tool calls)
+      const response = await runner.runMessage(message, resolvedSessionId, history, (chunk: string) => {
         const event: ChatUpdateEvent = {
           type: "event",
           event: "chat.update",
