@@ -75,6 +75,9 @@ export interface RunMessageResult {
 
   /** Session ID this run was associated with */
   sessionId: string;
+
+  /** Stop reason returned by Claude (e.g. "end_turn", "max_tokens") */
+  stopReason: string | null;
 }
 
 // ─── Agent Runner ───────────────────────────────────────────────────────────
@@ -171,6 +174,7 @@ export class AgentRunner {
     const allToolCalls: ToolCall[] = [];
     let finalContent = "";
     let model = this.config.model;
+    let stopReason: string | null = null;
     let round = 0;
 
     while (round < this.maxToolRounds) {
@@ -188,6 +192,7 @@ export class AgentRunner {
       totalUsage.inputTokens += response.usage.inputTokens;
       totalUsage.outputTokens += response.usage.outputTokens;
       model = response.model;
+      stopReason = response.stopReason;
 
       // Process response content blocks
       const textParts: string[] = [];
@@ -272,6 +277,7 @@ export class AgentRunner {
       model,
       toolCalls: allToolCalls,
       sessionId,
+      stopReason,
     };
   }
 

@@ -199,7 +199,8 @@ Lliam does not ship any licensed PM content. The knowledge base is designed arou
 | Validation | `Zod` — runtime schema enforcement |
 | Gateway | Express 5 + `ws` WebSocket server |
 | Voice | Gemini 3.1 Flash Live (WebSocket audio, function calling) |
-| GWS integration | GWS CLI — Gmail, Calendar, Drive |
+| GWS integration | GWS CLI — Gmail, Calendar, Drive; Google Drive MCP (NotebookLM delegation) |
+| Telegram | `grammy` — Bot API, long polling, contact allowlist |
 | Testing | Vitest (280+ tests) |
 
 ---
@@ -240,8 +241,9 @@ npm install pdf-parse
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional capabilities
-export BRAVE_API_KEY=BSA...       # Web search
+export BRAVE_API_KEY=BSA...       # Web search (DDG fallback if unset)
 export GEMINI_API_KEY=...         # Voice channel
+export TELEGRAM_BOT_TOKEN=...     # Telegram channel (grammy)
 
 # Gateway server with full plugin system
 npm run start
@@ -257,7 +259,7 @@ The gateway starts on `http://127.0.0.1:3000`. Connect via WebSocket at `ws://12
 ## Roadmap
 
 - [ ] Plugin sandboxing — `isolated-vm` for third-party plugin isolation
-- [ ] Dependency scanning — automated vulnerability scanning in CI
+- [x] Dependency scanning — `npm audit` (high/critical) + socket.dev supply chain scan in CI
 - [ ] Monte Carlo simulation — probabilistic risk modeling in PM Risk plugin
 - [ ] Voice phone integration — Twilio Media Streams → Gemini Live
 - [ ] Multi-project portfolio risk aggregation

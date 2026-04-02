@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+
+# Ensure Homebrew and nvm paths are available when git runs this hook
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # ── npm audit: fail on high/critical vulnerabilities ────────────────────────
 echo "🔍 Running npm audit..."
