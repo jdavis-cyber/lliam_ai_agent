@@ -36,6 +36,7 @@ const ManifestSchema = z.object({
   description: z.string().min(1),
   main: z.string().optional(),
   kind: z.enum(["memory", "channel", "browser", "general"]).optional(),
+  dependencies: z.array(z.string()).optional(),
   configSchema: z.record(z.unknown()).optional(),
 });
 
@@ -171,6 +172,62 @@ async function loadPluginModule(entryPoint: string): Promise<PluginModule> {
   throw new Error("Plugin module must export a default object with a register() function");
 }
 
+// ─── Dependency Resolution ──────────────────────────────────────────────────
+
+/**
+ * Topological sort of plugin candidates by their declared dependencies.
+ * Plugins with no dependencies come first. Cycles are detected and reported
+ * as diagnostics — cycled plugins are appended at the end (best-effort).
+ */
+function topologicalSort(
+  byId: Map<string, PluginCandidate>,
+  registry: PluginRegistry
+): string[] {
+  const visited = new Set<string>();
+  const visiting = new Set<string>(); // cycle detection
+  const sorted: string[] = [];
+
+  function visit(id: string): void {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) {
+      registry.addDiagnostic(
+        id,
+        "warn",
+        `Circular dependency detected involving "${id}" — loading in discovery order`
+      );
+      return;
+    }
+
+    visiting.add(id);
+
+    const candidate = byId.get(id);
+    if (candidate) {
+      const deps = candidate.manifest.dependencies ?? [];
+      for (const dep of deps) {
+        if (!byId.has(dep)) {
+          registry.addDiagnostic(
+            id,
+            "warn",
+            `Dependency "${dep}" not found — plugin may fail at runtime`
+          );
+          continue;
+        }
+        visit(dep);
+      }
+    }
+
+    visiting.delete(id);
+    visited.add(id);
+    sorted.push(id);
+  }
+
+  for (const id of byId.keys()) {
+    visit(id);
+  }
+
+  return sorted;
+}
+
 // ─── Main Loader ────────────────────────────────────────────────────────────
 
 export interface LoadPluginsOptions {
@@ -219,8 +276,12 @@ export async function loadPlugins(
     byId.set(candidate.manifest.id, candidate);
   }
 
-  // 3. Load each plugin
-  for (const [pluginId, candidate] of byId) {
+  // 3. Topological sort by dependencies (plugins load after their deps)
+  const sorted = topologicalSort(byId, registry);
+
+  // 4. Load each plugin in dependency order
+  for (const pluginId of sorted) {
+    const candidate = byId.get(pluginId)!;
     const { manifest, dir, origin } = candidate;
 
     // Create plugin record

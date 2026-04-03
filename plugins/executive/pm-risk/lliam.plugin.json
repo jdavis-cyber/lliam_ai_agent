@@ -2,7 +2,7 @@
   "id": "executive.pm-risk",
   "name": "PM Risk Intelligence",
   "version": "1.0.0",
-  "description": "Risk lifecycle management with PMI-aligned risk processes and Monte Carlo simulation support. Covers risk identification using PMI ontology categories, qualitative and quantitative analysis (P×I scoring, EMV), response planning (avoid/transfer/mitigate/accept), risk register compilation, and monitoring with trend analysis.",
+  "description": "Risk lifecycle management with PMI-aligned risk processes and Monte Carlo simulation. Covers risk identification (PMI ontology categories), qualitative and quantitative analysis (P×I scoring, EMV), response planning (avoid/transfer/mitigate/accept), risk register compilation, monitoring with trend analysis, and probabilistic schedule/cost modeling (PERT/triangular, P10–P90 confidence intervals).",
   "kind": "general",
   "dependencies": ["executive.pm-knowledge"],
   "configSchema": {

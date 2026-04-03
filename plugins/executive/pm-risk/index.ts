@@ -2,8 +2,9 @@
  * PM Risk Intelligence Plugin
  *
  * Risk lifecycle management grounded in PMI methodology.
- * Five tools cover identification, analysis, response planning,
- * register compilation, and monitoring with trend analysis.
+ * Six tools cover identification, analysis, response planning,
+ * register compilation, monitoring with trend analysis, and
+ * Monte Carlo simulation for probabilistic schedule/cost modeling.
  *
  * Risk scoring: P × I on a 1–5 scale → 1–25 score
  * Quadrant mapping:
@@ -477,6 +478,189 @@ function buildRiskMonitoringReport(params: {
   return lines.join("\n");
 }
 
+// ─── Monte Carlo Simulation ─────────────────────────────────────────────────
+
+type Distribution = "triangular" | "pert";
+
+/** Generate a single sample from a triangular distribution */
+function sampleTriangular(min: number, likely: number, max: number): number {
+  const u = Math.random();
+  const fc = (likely - min) / (max - min);
+  if (u < fc) {
+    return min + Math.sqrt(u * (max - min) * (likely - min));
+  }
+  return max - Math.sqrt((1 - u) * (max - min) * (max - likely));
+}
+
+/** Generate a single sample from a PERT (Beta) distribution via triangular approximation */
+function samplePert(min: number, likely: number, max: number): number {
+  // PERT applies weight of 4× to the most likely value
+  const mean = (min + 4 * likely + max) / 6;
+  const alpha = ((mean - min) * (2 * likely - min - max)) / ((likely - mean) * (max - min));
+  const beta = (alpha * (max - mean)) / (mean - min);
+
+  // If alpha/beta invalid (degenerate), fall back to triangular
+  if (alpha <= 0 || beta <= 0 || !isFinite(alpha) || !isFinite(beta)) {
+    return sampleTriangular(min, likely, max);
+  }
+
+  // Beta distribution via rejection sampling (simple, correct)
+  let x: number;
+  let y: number;
+  const betaMode = (alpha - 1) / (alpha + beta - 2);
+  const betaMax = Math.pow(betaMode, alpha - 1) * Math.pow(1 - betaMode, beta - 1);
+
+  do {
+    x = Math.random();
+    y = Math.random() * betaMax;
+  } while (y > Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1));
+
+  return min + x * (max - min);
+}
+
+function sampleDistribution(
+  min: number,
+  likely: number,
+  max: number,
+  dist: Distribution
+): number {
+  return dist === "pert"
+    ? samplePert(min, likely, max)
+    : sampleTriangular(min, likely, max);
+}
+
+/** Compute percentile from sorted array */
+function percentile(sorted: number[], p: number): number {
+  const idx = (p / 100) * (sorted.length - 1);
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
+interface MonteCarloInput {
+  name: string;
+  min: number;
+  likely: number;
+  max: number;
+}
+
+function runMonteCarloSimulation(params: {
+  projectName: string;
+  items: MonteCarloInput[];
+  iterations: number;
+  distribution: Distribution;
+  unit: string;
+}): string {
+  const { projectName, items, iterations, distribution, unit } = params;
+  const date = timestamp();
+
+  // Run simulation
+  const totalSamples: number[] = [];
+  const itemStats: Array<{ name: string; p10: number; p50: number; p80: number; p90: number; mean: number }> = [];
+
+  // Per-item distributions
+  const itemSamples: number[][] = items.map(() => []);
+
+  for (let i = 0; i < iterations; i++) {
+    let total = 0;
+    for (let j = 0; j < items.length; j++) {
+      const sample = sampleDistribution(items[j].min, items[j].likely, items[j].max, distribution);
+      itemSamples[j].push(sample);
+      total += sample;
+    }
+    totalSamples.push(total);
+  }
+
+  // Sort for percentile calculations
+  totalSamples.sort((a, b) => a - b);
+  for (const samples of itemSamples) {
+    samples.sort((a, b) => a - b);
+  }
+
+  // Compute stats per item
+  for (let j = 0; j < items.length; j++) {
+    const sorted = itemSamples[j];
+    const mean = sorted.reduce((s, v) => s + v, 0) / sorted.length;
+    itemStats.push({
+      name: items[j].name,
+      p10: percentile(sorted, 10),
+      p50: percentile(sorted, 50),
+      p80: percentile(sorted, 80),
+      p90: percentile(sorted, 90),
+      mean,
+    });
+  }
+
+  const totalMean = totalSamples.reduce((s, v) => s + v, 0) / totalSamples.length;
+  const totalP10 = percentile(totalSamples, 10);
+  const totalP50 = percentile(totalSamples, 50);
+  const totalP80 = percentile(totalSamples, 80);
+  const totalP90 = percentile(totalSamples, 90);
+  const totalMin = totalSamples[0];
+  const totalMax = totalSamples[totalSamples.length - 1];
+
+  // Confidence analysis
+  const deterministicSum = items.reduce((s, it) => s + it.likely, 0);
+  const pctAboveDeterministic = (totalSamples.filter((v) => v > deterministicSum).length / iterations) * 100;
+
+  const fmt = (n: number): string =>
+    unit.startsWith("$") ? `$${Math.round(n).toLocaleString()}` : `${Math.round(n * 10) / 10} ${unit}`;
+
+  const lines: string[] = [
+    `# Monte Carlo Simulation — ${projectName}`,
+    `**Generated:** ${date}`,
+    `**Framework:** PMI PMBOK-Aligned — Quantitative Risk Analysis`,
+    "",
+    "## Simulation Parameters",
+    "| Parameter | Value |",
+    "|-----------|-------|",
+    `| Distribution | ${distribution === "pert" ? "PERT (Beta)" : "Triangular"} |`,
+    `| Iterations | ${iterations.toLocaleString()} |`,
+    `| Items Modeled | ${items.length} |`,
+    `| Unit | ${unit} |`,
+    "",
+    "## Aggregate Results",
+    "| Percentile | Value | Interpretation |",
+    "|-----------|-------|----------------|",
+    `| P10 (Optimistic) | ${fmt(totalP10)} | 10% chance of being at or below this value |`,
+    `| P50 (Median) | ${fmt(totalP50)} | Equally likely to be above or below |`,
+    `| **P80 (Recommended)** | **${fmt(totalP80)}** | **80% confidence — recommended for planning** |`,
+    `| P90 (Conservative) | ${fmt(totalP90)} | High confidence — use for critical commitments |`,
+    "",
+    "| Statistic | Value |",
+    "|-----------|-------|",
+    `| Mean | ${fmt(totalMean)} |`,
+    `| Min (simulated) | ${fmt(totalMin)} |`,
+    `| Max (simulated) | ${fmt(totalMax)} |`,
+    `| Deterministic Sum (all "likely" values) | ${fmt(deterministicSum)} |`,
+    `| % iterations exceeding deterministic | ${Math.round(pctAboveDeterministic)}% |`,
+    "",
+    "## Per-Item Breakdown",
+    "",
+    `| Item | Min | Likely | Max | P50 | P80 | Mean |`,
+    `|------|-----|--------|-----|-----|-----|------|`,
+    ...itemStats.map((s, i) =>
+      `| ${s.name} | ${fmt(items[i].min)} | ${fmt(items[i].likely)} | ${fmt(items[i].max)} | ${fmt(s.p50)} | ${fmt(s.p80)} | ${fmt(s.mean)} |`
+    ),
+    "",
+    "## Key Findings",
+    "",
+    `1. **Planning estimate (P80):** ${fmt(totalP80)} — provides 80% confidence of coming in at or below this value.`,
+    `2. **Deterministic risk:** Using simple "most likely" estimates (${fmt(deterministicSum)}) has only a ${Math.round(100 - pctAboveDeterministic)}% chance of being sufficient — ${pctAboveDeterministic > 50 ? "high risk of overrun" : "reasonable but not conservative"}.`,
+    `3. **Contingency reserve:** The difference between P80 and the deterministic estimate is ${fmt(totalP80 - deterministicSum)} — this is the recommended management reserve.`,
+    "",
+    "## PMI Recommendation",
+    "",
+    "Per PMI guidance on quantitative risk analysis, use the **P80 value** for baseline planning and the **P50–P80 delta** as contingency reserve. The P90 value should inform management reserve discussions with the sponsor.",
+    "",
+    "---",
+    "_Generated by Lliam PM Risk Intelligence — Monte Carlo (${distribution}, ${iterations.toLocaleString()} iterations)_",
+  ];
+
+  return lines.join("\n");
+}
+
 // ─── Plugin Definition ────────────────────────────────────────────────────────
 
 const pmRiskPlugin: PluginModule = {
@@ -694,6 +878,76 @@ const pmRiskPlugin: PluginModule = {
             originalImpact: number;
             status: RiskStatus;
           }>,
+        });
+
+        return { content };
+      },
+    });
+
+    // ─── simulate_risk_monte_carlo ────────────────────────────────
+
+    api.registerTool({
+      name: "simulate_risk_monte_carlo",
+      description:
+        "Run a Monte Carlo simulation for schedule or cost risk analysis. Takes an array of " +
+        "work items with min/likely/max three-point estimates, runs N iterations using " +
+        "triangular or PERT distributions, and returns percentile-based confidence intervals " +
+        "(P10/P50/P80/P90) with recommended planning values per PMI quantitative risk analysis guidance.",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          projectName: { type: "string", description: "Project name" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Work item or cost element name" },
+                min: { type: "number", description: "Optimistic (best-case) estimate" },
+                likely: { type: "number", description: "Most likely estimate" },
+                max: { type: "number", description: "Pessimistic (worst-case) estimate" },
+              },
+              required: ["name", "min", "likely", "max"],
+            },
+            description: "Work items or cost elements with three-point estimates",
+          },
+          iterations: {
+            type: "number",
+            description: "Number of simulation iterations (default: 10000, max: 100000)",
+          },
+          distribution: {
+            type: "string",
+            enum: ["triangular", "pert"],
+            description: "Probability distribution: 'triangular' or 'pert' (default: 'pert')",
+          },
+          unit: {
+            type: "string",
+            description: "Unit of measure (e.g. 'days', 'hours', '$', '$K') — used in output formatting",
+          },
+        },
+        required: ["projectName", "items"],
+      },
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
+        const items = params["items"] as MonteCarloInput[];
+
+        for (const item of items) {
+          if (item.min > item.likely || item.likely > item.max) {
+            return {
+              content: `Error: item "${item.name}" has invalid estimates — must satisfy min ≤ likely ≤ max (got ${item.min}/${item.likely}/${item.max}).`,
+            };
+          }
+        }
+
+        const iterations = Math.min(Number(params["iterations"] ?? 10000), 100000);
+        const distribution = (String(params["distribution"] ?? "pert")) as Distribution;
+        const unit = String(params["unit"] ?? "days");
+
+        const content = runMonteCarloSimulation({
+          projectName: String(params["projectName"]),
+          items,
+          iterations,
+          distribution,
+          unit,
         });
 
         return { content };

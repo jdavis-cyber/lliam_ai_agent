@@ -51,7 +51,7 @@ Artifacts are saved to the configured `outputPath` and returned inline for immed
 
 ### PM Risk Intelligence
 
-Five tools covering the full PMI risk lifecycle:
+Six tools covering the full PMI risk lifecycle:
 
 | Tool | Description |
 |------|-------------|
@@ -60,6 +60,7 @@ Five tools covering the full PMI risk lifecycle:
 | `plan_risk_response` | Action plan, residual risk estimate, contingency plan |
 | `create_risk_register` | Full register with scores, sorting, and summary stats |
 | `monitor_risks` | Trend analysis (Improving/Worsening/Stable), escalation flags |
+| `simulate_risk_monte_carlo` | Probabilistic modeling (PERT/triangular), P10–P90 confidence intervals |
 
 ### Email & Calendar Briefing
 
@@ -260,7 +261,7 @@ The gateway starts on `http://127.0.0.1:3000`. Connect via WebSocket at `ws://12
 
 - [ ] Plugin sandboxing — `isolated-vm` for third-party plugin isolation
 - [x] Dependency scanning — `npm audit` (high/critical) + socket.dev supply chain scan in CI
-- [ ] Monte Carlo simulation — probabilistic risk modeling in PM Risk plugin
+- [x] Monte Carlo simulation — PERT/triangular distributions, P10–P90 confidence intervals
 - [ ] Voice phone integration — Twilio Media Streams → Gemini Live
 - [ ] Multi-project portfolio risk aggregation
 

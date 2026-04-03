@@ -32,6 +32,9 @@ export interface PluginManifest {
   /** Plugin kind for special handling */
   kind?: PluginKind;
 
+  /** Plugin IDs this plugin depends on (loaded first, services available) */
+  dependencies?: string[];
+
   /** JSON Schema for plugin-specific configuration */
   configSchema?: Record<string, unknown>;
 }
