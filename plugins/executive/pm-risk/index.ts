@@ -2,9 +2,9 @@
  * PM Risk Intelligence Plugin
  *
  * Risk lifecycle management grounded in PMI methodology.
- * Six tools cover identification, analysis, response planning,
- * register compilation, monitoring with trend analysis, and
- * Monte Carlo simulation for probabilistic schedule/cost modeling.
+ * Seven tools cover identification, analysis, response planning,
+ * register compilation, monitoring with trend analysis,
+ * Monte Carlo simulation, and multi-project portfolio aggregation.
  *
  * Risk scoring: P × I on a 1–5 scale → 1–25 score
  * Quadrant mapping:
@@ -661,13 +661,222 @@ function runMonteCarloSimulation(params: {
   return lines.join("\n");
 }
 
+// ─── Portfolio Risk Aggregation ──────────────────────────────────────────────
+
+interface ProjectRiskSummary {
+  projectName: string;
+  risks: Array<{
+    description: string;
+    category: string;
+    probability: number;
+    impact: number;
+    status: string;
+  }>;
+}
+
+function buildPortfolioRiskReport(params: {
+  portfolioName: string;
+  projects: ProjectRiskSummary[];
+}): string {
+  const date = timestamp();
+  const { portfolioName, projects } = params;
+
+  // Score all risks across all projects
+  const allRisks: Array<{
+    project: string;
+    description: string;
+    category: string;
+    probability: number;
+    impact: number;
+    score: number;
+    level: "High" | "Medium" | "Low";
+    status: string;
+  }> = [];
+
+  const projectSummaries: Array<{
+    project: string;
+    total: number;
+    high: number;
+    medium: number;
+    low: number;
+    exposure: number;
+    topRisk: string;
+    topScore: number;
+    healthColor: string;
+  }> = [];
+
+  for (const proj of projects) {
+    let high = 0, medium = 0, low = 0, exposure = 0;
+    let topRisk = "—", topScore = 0;
+
+    for (const r of proj.risks) {
+      const score = scoreRisk(r.probability, r.impact);
+      const level = riskLevel(score);
+      exposure += score;
+
+      if (level === "High") high++;
+      else if (level === "Medium") medium++;
+      else low++;
+
+      if (score > topScore) {
+        topScore = score;
+        topRisk = r.description.slice(0, 60);
+      }
+
+      allRisks.push({
+        project: proj.projectName,
+        description: r.description,
+        category: r.category,
+        probability: r.probability,
+        impact: r.impact,
+        score,
+        level,
+        status: r.status ?? "open",
+      });
+    }
+
+    const healthColor = high > 2 ? "RED" : high > 0 ? "AMBER" : "GREEN";
+    projectSummaries.push({
+      project: proj.projectName,
+      total: proj.risks.length,
+      high, medium, low,
+      exposure: Math.round(exposure * 10) / 10,
+      topRisk,
+      topScore,
+      healthColor,
+    });
+  }
+
+  // Sort by exposure descending
+  projectSummaries.sort((a, b) => b.exposure - a.exposure);
+
+  // Category aggregation across portfolio
+  const categoryMap = new Map<string, { count: number; totalScore: number }>();
+  for (const r of allRisks) {
+    const existing = categoryMap.get(r.category) ?? { count: 0, totalScore: 0 };
+    existing.count++;
+    existing.totalScore += r.score;
+    categoryMap.set(r.category, existing);
+  }
+  const categoryStats = Array.from(categoryMap.entries())
+    .map(([cat, stats]) => ({ category: cat, ...stats, avgScore: Math.round(stats.totalScore / stats.count * 10) / 10 }))
+    .sort((a, b) => b.totalScore - a.totalScore);
+
+  // Portfolio-level stats
+  const totalRisks = allRisks.length;
+  const totalHigh = allRisks.filter((r) => r.level === "High").length;
+  const totalMedium = allRisks.filter((r) => r.level === "Medium").length;
+  const totalLow = allRisks.filter((r) => r.level === "Low").length;
+  const totalExposure = allRisks.reduce((s, r) => s + r.score, 0);
+  const openRisks = allRisks.filter((r) => r.status === "open").length;
+  const portfolioHealth = totalHigh > 5 ? "RED" : totalHigh > 2 ? "AMBER" : "GREEN";
+
+  // Top 10 risks across portfolio
+  const topRisks = [...allRisks].sort((a, b) => b.score - a.score).slice(0, 10);
+
+  const lines: string[] = [
+    `# Portfolio Risk Report — ${portfolioName}`,
+    `**Generated:** ${date}`,
+    `**Framework:** PMI Standard for Program Management — Risk Aggregation`,
+    "",
+    "## Portfolio Health Summary",
+    "",
+    `| Metric | Value |`,
+    `|--------|-------|`,
+    `| **Overall Health** | **${portfolioHealth}** |`,
+    `| Total Projects | ${projects.length} |`,
+    `| Total Risks | ${totalRisks} (${openRisks} open) |`,
+    `| High Risks | ${totalHigh} |`,
+    `| Medium Risks | ${totalMedium} |`,
+    `| Low Risks | ${totalLow} |`,
+    `| Portfolio Risk Exposure | ${Math.round(totalExposure * 10) / 10} |`,
+    "",
+    "## Project Risk Dashboard",
+    "",
+    "| Project | Health | Total | High | Med | Low | Exposure | Top Risk |",
+    "|---------|--------|-------|------|-----|-----|----------|----------|",
+    ...projectSummaries.map((p) =>
+      `| ${p.project} | **${p.healthColor}** | ${p.total} | ${p.high} | ${p.medium} | ${p.low} | ${p.exposure} | ${p.topRisk} (${p.topScore}) |`
+    ),
+    "",
+    "## Top 10 Risks Across Portfolio",
+    "",
+    "| # | Project | Score | Level | Category | Description |",
+    "|---|---------|-------|-------|----------|-------------|",
+    ...topRisks.map((r, i) =>
+      `| ${i + 1} | ${r.project} | ${r.score} | **${r.level}** | ${r.category} | ${r.description} |`
+    ),
+    "",
+    "## Risk Category Concentration",
+    "",
+    "| Category | Count | Total Exposure | Avg Score | Concentration |",
+    "|----------|-------|---------------|-----------|---------------|",
+    ...categoryStats.map((c) => {
+      const pct = Math.round((c.totalScore / totalExposure) * 100);
+      const bar = "█".repeat(Math.max(1, Math.round(pct / 5)));
+      return `| ${c.category} | ${c.count} | ${Math.round(c.totalScore * 10) / 10} | ${c.avgScore} | ${bar} ${pct}% |`;
+    }),
+    "",
+    "## Cross-Project Risk Correlations",
+    "",
+  ];
+
+  // Identify categories that appear in 3+ projects
+  const crossProjectCategories = new Map<string, Set<string>>();
+  for (const r of allRisks) {
+    if (!crossProjectCategories.has(r.category)) {
+      crossProjectCategories.set(r.category, new Set());
+    }
+    crossProjectCategories.get(r.category)!.add(r.project);
+  }
+
+  const correlatedCategories = Array.from(crossProjectCategories.entries())
+    .filter(([_, projs]) => projs.size >= Math.min(3, projects.length))
+    .sort((a, b) => b[1].size - a[1].size);
+
+  if (correlatedCategories.length > 0) {
+    lines.push(
+      "_The following risk categories affect multiple projects — consider portfolio-level response strategies:_",
+      "",
+      ...correlatedCategories.map(([cat, projs]) =>
+        `- **${cat}** — affects ${projs.size}/${projects.length} projects: ${Array.from(projs).join(", ")}`
+      ),
+      ""
+    );
+  } else {
+    lines.push("_No risk categories span 3+ projects — risks are project-specific._", "");
+  }
+
+  lines.push(
+    "## Recommended Portfolio Actions",
+    "",
+    `1. **Immediate attention:** ${totalHigh} high-risk items across ${new Set(allRisks.filter(r => r.level === "High").map(r => r.project)).size} projects require escalation to program governance`,
+  );
+
+  if (correlatedCategories.length > 0) {
+    lines.push(
+      `2. **Systemic response:** ${correlatedCategories[0][0]} risk affects ${correlatedCategories[0][1].size} projects — coordinate a portfolio-level mitigation`,
+    );
+  }
+
+  lines.push(
+    `${correlatedCategories.length > 0 ? "3" : "2"}. **Resource allocation:** Focus risk response budget on top-exposure project (${projectSummaries[0]?.project ?? "N/A"}, exposure: ${projectSummaries[0]?.exposure ?? 0})`,
+    `${correlatedCategories.length > 0 ? "4" : "3"}. **Next review:** Schedule portfolio risk review within 2 weeks for all ${portfolioHealth === "RED" ? "RED and AMBER" : "AMBER"} projects`,
+    "",
+    "---",
+    "_Generated by Lliam PM Risk Intelligence — Portfolio Aggregation_"
+  );
+
+  return lines.join("\n");
+}
+
 // ─── Plugin Definition ────────────────────────────────────────────────────────
 
 const pmRiskPlugin: PluginModule = {
   id: "executive.pm-risk",
   name: "PM Risk Intelligence",
   version: "1.0.0",
-  description: "Risk lifecycle management with PMI-aligned processes: identify, analyze, respond, register, monitor",
+  description: "Risk lifecycle management with PMI-aligned processes: identify, analyze, respond, register, monitor, simulate, aggregate",
 
   register(api: PluginAPI): void {
 
@@ -948,6 +1157,57 @@ const pmRiskPlugin: PluginModule = {
           iterations,
           distribution,
           unit,
+        });
+
+        return { content };
+      },
+    });
+
+    // ─── aggregate_portfolio_risks ──────────────────────────────
+
+    api.registerTool({
+      name: "aggregate_portfolio_risks",
+      description:
+        "Aggregate risks across multiple projects into a portfolio-level risk report. " +
+        "Produces a portfolio health dashboard (RED/AMBER/GREEN per project), top 10 " +
+        "cross-project risks, risk category concentration analysis, cross-project " +
+        "correlation detection, and recommended portfolio-level actions.",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          portfolioName: { type: "string", description: "Portfolio or program name" },
+          projects: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                projectName: { type: "string" },
+                risks: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      description: { type: "string" },
+                      category: { type: "string" },
+                      probability: { type: "number" },
+                      impact: { type: "number" },
+                      status: { type: "string" },
+                    },
+                    required: ["description", "category", "probability", "impact"],
+                  },
+                },
+              },
+              required: ["projectName", "risks"],
+            },
+            description: "Array of projects, each with their risk arrays",
+          },
+        },
+        required: ["portfolioName", "projects"],
+      },
+      async execute(_toolCallId: string, params: Record<string, unknown>) {
+        const content = buildPortfolioRiskReport({
+          portfolioName: String(params["portfolioName"]),
+          projects: params["projects"] as ProjectRiskSummary[],
         });
 
         return { content };

@@ -26,6 +26,7 @@
 
 import { WebSocketServer, WebSocket } from "ws";
 import type { PluginModule, PluginAPI } from "../../../src/plugin/types.js";
+import { handleTwilioMediaStream, generateTwiml } from "./twilio-adapter.js";
 
 // ─── Gemini Live API Types ────────────────────────────────────────────────────
 
@@ -106,11 +107,15 @@ const geminiVoicePlugin: PluginModule = {
     const config = api.pluginConfig as {
       geminiApiKey?: string;
       voicePort?: number;
+      twilioPort?: number;
+      twilioPublicUrl?: string;
       allowedPhoneNumbers?: string[];
     };
 
     const apiKey = config.geminiApiKey ?? process.env.GEMINI_API_KEY ?? "";
     const voicePort = config.voicePort ?? 3001;
+    const twilioPort = config.twilioPort ?? 3002;
+    const twilioPublicUrl = config.twilioPublicUrl ?? process.env.TWILIO_PUBLIC_URL ?? "";
     const allowedNumbers = config.allowedPhoneNumbers ?? [];
 
     if (!apiKey) {
@@ -323,22 +328,93 @@ Speak naturally. If you need to think, say "give me a moment". Do not read out J
       },
     });
 
+    // ── Service: twilio-media-bridge ────────────────────────────────────────────
+    let twilioWss: WebSocketServer | null = null;
+    let twilioHttpServer: import("node:http").Server | null = null;
+
+    api.registerService({
+      id: "twilio-media-bridge",
+
+      async start() {
+        if (!twilioPublicUrl) {
+          api.logger.info(
+            "Twilio adapter: TWILIO_PUBLIC_URL not set — Twilio bridge disabled. " +
+            "Set this to your ngrok/tunnel URL to enable phone call integration."
+          );
+          return;
+        }
+
+        const http = await import("node:http");
+
+        // Create HTTP server for TwiML webhook + WS upgrade
+        twilioHttpServer = http.createServer((req, res) => {
+          if (req.method === "POST" && req.url === "/twilio/voice") {
+            const streamUrl = twilioPublicUrl.replace(/^https?/, "wss") + "/twilio/media";
+            const twiml = generateTwiml(streamUrl);
+            res.writeHead(200, { "Content-Type": "text/xml" });
+            res.end(twiml);
+            api.logger.info("Twilio TwiML served — connecting call to media stream");
+          } else {
+            res.writeHead(404);
+            res.end("Not found");
+          }
+        });
+
+        // WebSocket server for Twilio Media Streams
+        twilioWss = new WebSocketServer({ server: twilioHttpServer, path: "/twilio/media" });
+
+        twilioWss.on("connection", (ws) => {
+          api.logger.info("Twilio Media Stream connected");
+          handleTwilioMediaStream(ws, {
+            geminiVoicePort: voicePort,
+            publicStreamUrl: twilioPublicUrl,
+            logger: api.logger,
+          });
+        });
+
+        twilioHttpServer.listen(twilioPort, "0.0.0.0", () => {
+          api.logger.info(
+            `Twilio adapter listening on port ${twilioPort} ` +
+            `(TwiML: POST /twilio/voice, Media: WS /twilio/media)`
+          );
+        });
+      },
+
+      stop() {
+        if (twilioWss) {
+          twilioWss.close();
+          twilioWss = null;
+        }
+        if (twilioHttpServer) {
+          twilioHttpServer.close();
+          twilioHttpServer = null;
+        }
+        api.logger.info("Twilio adapter stopped");
+      },
+    });
+
     // ── Tool: voice_status ────────────────────────────────────────────────────
     api.registerTool({
       name: "voice_status",
-      description: "Check the status of the Gemini Live voice channel — active sessions, port, model.",
+      description: "Check the status of the Gemini Live voice channel — active sessions, port, model, Twilio adapter.",
       parameters: { type: "object" as const, properties: {}, required: [] },
       async execute() {
         return {
           content: JSON.stringify({
             model: GEMINI_LIVE_MODEL,
-            port: voicePort,
+            voice_port: voicePort,
             bound_to: "127.0.0.1 (localhost only)",
             active_sessions: activeSessions.size,
             api_key_configured: !!apiKey,
             allowed_numbers: allowedNumbers.length > 0 ? allowedNumbers : "any",
             connect_url: `ws://127.0.0.1:${voicePort}`,
-            twilio_integration: "Set x-twilio-caller-id header and stream PCM16 at 16kHz",
+            twilio: {
+              enabled: !!twilioPublicUrl,
+              port: twilioPort,
+              public_url: twilioPublicUrl || "(not configured)",
+              twiml_webhook: twilioPublicUrl ? `${twilioPublicUrl}/twilio/voice` : "(not configured)",
+              media_stream: twilioPublicUrl ? `${twilioPublicUrl.replace(/^https?/, "wss")}/twilio/media` : "(not configured)",
+            },
           }, null, 2),
         };
       },
