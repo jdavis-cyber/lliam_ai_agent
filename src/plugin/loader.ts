@@ -24,6 +24,7 @@ import type {
 } from "./types.js";
 import { PluginRegistry } from "./registry.js";
 import { buildPluginAPI } from "./context.js";
+import { isSandboxAvailable, SandboxManager } from "./sandbox.js";
 
 // ─── Manifest Validation ────────────────────────────────────────────────────
 
@@ -37,6 +38,10 @@ const ManifestSchema = z.object({
   main: z.string().optional(),
   kind: z.enum(["memory", "channel", "browser", "general"]).optional(),
   dependencies: z.array(z.string()).optional(),
+  sandbox: z.object({
+    enabled: z.boolean().optional(),
+    memoryLimitMB: z.number().min(8).max(1024).optional(),
+  }).optional(),
   configSchema: z.record(z.unknown()).optional(),
 });
 
@@ -239,21 +244,44 @@ export interface LoadPluginsOptions {
 
   /** Explicit list of plugin IDs to disable */
   disabledPlugins?: string[];
+
+  /** Disable sandbox for all user plugins (default: false) */
+  disableSandbox?: boolean;
+}
+
+export interface LoadPluginsResult {
+  registry: PluginRegistry;
+  sandboxManager: SandboxManager;
 }
 
 /**
  * Discover, validate, load, and register all plugins.
  *
- * Returns a fully populated PluginRegistry.
+ * Returns a fully populated PluginRegistry and SandboxManager.
  *
  * Loading is fail-safe: individual plugin failures are recorded as diagnostics
  * but don't prevent other plugins from loading.
+ *
+ * User-origin plugins are sandboxed by default if `isolated-vm` is installed.
+ * Bundled plugins always run in the main process.
  */
 export async function loadPlugins(
   options: LoadPluginsOptions
-): Promise<PluginRegistry> {
+): Promise<LoadPluginsResult> {
   const registry = new PluginRegistry();
-  const { searchPaths, pluginConfigs = {}, disabledPlugins = [] } = options;
+  const sandboxManager = new SandboxManager();
+  const {
+    searchPaths,
+    pluginConfigs = {},
+    disabledPlugins = [],
+    disableSandbox = false,
+  } = options;
+
+  // Check sandbox availability once
+  const sandboxAvailable = disableSandbox ? false : await isSandboxAvailable();
+  if (sandboxAvailable) {
+    console.info("  Plugin sandbox: isolated-vm available — user plugins will be sandboxed.");
+  }
 
   // 1. Discover candidates
   const { candidates, errors } = discoverPlugins(searchPaths);
@@ -320,37 +348,78 @@ export async function loadPlugins(
       continue;
     }
 
-    // Load and register
-    try {
-      const mod = await loadPluginModule(entryPoint);
+    // Determine whether to sandbox this plugin
+    const shouldSandbox =
+      sandboxAvailable &&
+      origin === "user" &&
+      manifest.sandbox?.enabled !== false;
 
-      // Validate that module ID matches manifest ID
-      if (mod.id !== manifest.id) {
+    if (shouldSandbox) {
+      // ── Sandboxed loading (user plugins) ────────────────────────
+      try {
+        const code = readFileSync(entryPoint, "utf-8");
+        const memoryLimitMB = manifest.sandbox?.memoryLimitMB ?? 128;
+        const sandbox = await sandboxManager.createSandbox(pluginId, { memoryLimitMB });
+
+        if (!sandbox) {
+          throw new Error("SandboxManager returned null despite availability check");
+        }
+
+        const pluginConfig = pluginConfigs[pluginId] ?? {};
+        await sandbox.loadPlugin(code, record, registry, pluginConfig);
+
+        registry.updatePluginStatus(pluginId, "loaded");
+        registry.addDiagnostic(
+          pluginId,
+          "info",
+          `Loaded in sandbox (${memoryLimitMB}MB limit, ${record.toolNames.length} tools, ${record.hookNames.length} hooks)`
+        );
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        registry.updatePluginStatus(pluginId, "error", errorMsg);
+        registry.addDiagnostic(pluginId, "error", `Sandbox load failed: ${errorMsg}`);
+      }
+    } else {
+      // ── Direct loading (bundled plugins, or sandbox unavailable) ─
+      if (origin === "user" && !sandboxAvailable && !disableSandbox) {
         registry.addDiagnostic(
           pluginId,
           "warn",
-          `Module ID "${mod.id}" doesn't match manifest ID "${manifest.id}" — using manifest ID`
+          `User plugin loaded WITHOUT sandbox — install isolated-vm for isolation`
         );
       }
 
-      // Build scoped API and call register()
-      const pluginConfig = pluginConfigs[pluginId] ?? {};
-      const api = buildPluginAPI(record, registry, pluginConfig);
+      try {
+        const mod = await loadPluginModule(entryPoint);
 
-      await mod.register(api);
+        // Validate that module ID matches manifest ID
+        if (mod.id !== manifest.id) {
+          registry.addDiagnostic(
+            pluginId,
+            "warn",
+            `Module ID "${mod.id}" doesn't match manifest ID "${manifest.id}" — using manifest ID`
+          );
+        }
 
-      registry.updatePluginStatus(pluginId, "loaded");
-      registry.addDiagnostic(
-        pluginId,
-        "info",
-        `Loaded successfully (${record.toolNames.length} tools, ${record.hookNames.length} hooks)`
-      );
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      registry.updatePluginStatus(pluginId, "error", errorMsg);
-      registry.addDiagnostic(pluginId, "error", `Failed to load: ${errorMsg}`);
+        // Build scoped API and call register()
+        const pluginConfig = pluginConfigs[pluginId] ?? {};
+        const api = buildPluginAPI(record, registry, pluginConfig);
+
+        await mod.register(api);
+
+        registry.updatePluginStatus(pluginId, "loaded");
+        registry.addDiagnostic(
+          pluginId,
+          "info",
+          `Loaded successfully (${record.toolNames.length} tools, ${record.hookNames.length} hooks)`
+        );
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        registry.updatePluginStatus(pluginId, "error", errorMsg);
+        registry.addDiagnostic(pluginId, "error", `Failed to load: ${errorMsg}`);
+      }
     }
   }
 
-  return registry;
+  return { registry, sandboxManager };
 }

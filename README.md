@@ -163,6 +163,36 @@ Lliam does not ship any licensed PM content. The knowledge base is designed arou
 
 ---
 
+## Plugin Sandboxing
+
+User-installed plugins (from `~/.lliam/plugins/`) run in V8 isolates via [`isolated-vm`](https://github.com/nicknisi/isolated-vm) by default. This provides:
+
+- **Memory isolation** — each user plugin gets its own V8 heap with a configurable memory limit (default 128MB)
+- **No Node.js access** — sandboxed plugins cannot access the filesystem, network, or `require()`/`import` Node.js modules
+- **Timeout enforcement** — registration (5s) and tool execution (30s) are capped to prevent runaway code
+- **Bridge-only API** — plugins interact solely through the `pluginAPI` bridge: `registerTool`, `registerHook`, `registerCommand`, `log`, and `config`
+
+**Bundled plugins** (in `plugins/core/` and `plugins/executive/`) are trusted and always run in the main process.
+
+**Installation:**
+```bash
+npm install isolated-vm   # optional — user plugins fall back to unsandboxed without it
+```
+
+**Plugin manifest opt-out:**
+```json
+{
+  "sandbox": {
+    "enabled": false,
+    "memoryLimitMB": 256
+  }
+}
+```
+
+If `isolated-vm` is not installed, user plugins load unsandboxed with a warning diagnostic.
+
+---
+
 ## Security Design
 
 | Control | Implementation |
@@ -174,7 +204,7 @@ Lliam does not ship any licensed PM content. The knowledge base is designed arou
 | Encryption at rest | AES-256-GCM (KeyManager) — knowledge DB + memory DB + sessions |
 | Atomic writes | Temp-file-then-rename prevents data corruption on crash |
 | Local embeddings | ONNX Runtime in-process — no external embedding service |
-| Plugin isolation | Manifest-validated; sandboxing via `isolated-vm` planned |
+| Plugin isolation | User plugins run in `isolated-vm` V8 isolates with memory limits; bundled plugins are trusted |
 | Credential handling | Environment-only; no credentials in config files or code |
 | Tool call auditing | Every tool invocation logged with duration and caller context |
 
@@ -259,7 +289,7 @@ The gateway starts on `http://127.0.0.1:3000`. Connect via WebSocket at `ws://12
 
 ## Roadmap
 
-- [ ] Plugin sandboxing — `isolated-vm` for third-party plugin isolation
+- [x] Plugin sandboxing — `isolated-vm` V8 isolates for user-installed plugins
 - [x] Dependency scanning — `npm audit` (high/critical) + socket.dev supply chain scan in CI
 - [x] Monte Carlo simulation — PERT/triangular distributions, P10–P90 confidence intervals
 - [ ] Voice phone integration — Twilio Media Streams → Gemini Live

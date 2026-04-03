@@ -1,7 +1,7 @@
 {
   "name": "lliam",
   "version": "0.1.0",
-  "description": "Lliam — Personal AI Assistant Platform",
+  "description": "Lliam — AI Project & Program Management Intelligence",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -26,6 +26,9 @@
     "sql.js": "^1.14.0",
     "ws": "^8.19.0",
     "zod": "^3.24.2"
+  },
+  "optionalDependencies": {
+    "isolated-vm": "^5.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

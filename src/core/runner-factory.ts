@@ -23,6 +23,7 @@ import { AgentRunner, type AgentRunnerConfig } from "./agent-runner.js";
 import { keyManager } from "../security/key-manager.js";
 import type { AgentConfig } from "../types/index.js";
 import type { PluginRegistry } from "../plugin/registry.js";
+import type { SandboxManager } from "../plugin/sandbox.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,9 @@ export interface RunnerFactory {
   registry: PluginRegistry;
   hookRunner: HookRunner;
   toolExecutor: ToolExecutor;
+  sandboxManager: SandboxManager;
+  /** Call on shutdown to dispose sandbox isolates */
+  shutdown(): void;
 }
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
@@ -68,11 +72,18 @@ export async function bootstrapRunnerFactory(options: {
     ...extraPluginDirs.map((dir) => ({ dir, origin: "user" as const })),
   ];
 
-  // ── 2. Load plugins ───────────────────────────────────────────────────
-  const registry = await loadPlugins({ searchPaths, pluginConfigs, disabledPlugins });
+  // ── 2. Load plugins (with sandbox support for user plugins) ─────────
+  const { registry, sandboxManager } = await loadPlugins({
+    searchPaths,
+    pluginConfigs,
+    disabledPlugins,
+  });
 
   const summary = registry.getSummary();
   console.log(`  Plugins loaded: ${summary.plugins} (${summary.tools} tools, ${summary.hooks} hooks)`);
+  if (sandboxManager.count > 0) {
+    console.log(`  Sandboxed plugins: ${sandboxManager.count}`);
+  }
 
   const errors = registry.getDiagnostics().filter((d) => d.level === "error");
   for (const err of errors) {
@@ -99,6 +110,11 @@ export async function bootstrapRunnerFactory(options: {
     registry,
     hookRunner,
     toolExecutor,
+    sandboxManager,
+    shutdown() {
+      sandboxManager.disposeAll();
+      console.log("  Sandbox manager: all isolates disposed.");
+    },
     create(agentConfig: AgentConfig, apiKey?: string): AgentRunner {
       return new AgentRunner({
         agentConfig,

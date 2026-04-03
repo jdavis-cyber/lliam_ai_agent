@@ -35,6 +35,14 @@ export interface PluginManifest {
   /** Plugin IDs this plugin depends on (loaded first, services available) */
   dependencies?: string[];
 
+  /** Sandbox configuration for user-installed plugins */
+  sandbox?: {
+    /** Set to false to disable sandboxing (default: true for user plugins) */
+    enabled?: boolean;
+    /** Memory limit in MB for the V8 isolate (default: 128) */
+    memoryLimitMB?: number;
+  };
+
   /** JSON Schema for plugin-specific configuration */
   configSchema?: Record<string, unknown>;
 }
