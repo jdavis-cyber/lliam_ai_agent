@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lliam — User's Manual</title>
+<style>
+  :root {
+    --navy:  #1B2A4A;
+    --steel: #2E5FA3;
+    --light: #E8EEF6;
+    --gray:  #6B7280;
+    --code:  #F1F5F9;
+    --border:#D1D5DB;
+    --text:  #111827;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: var(--text);
+    background: #F9FAFB;
+    line-height: 1.65;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  nav {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--navy);
+    padding: 2rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.2) transparent;
+  }
+  nav::-webkit-scrollbar { width: 4px; }
+  nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 2px; }
+
+  .nav-logo {
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    margin-bottom: 1rem;
+  }
+  .nav-logo .brand { font-size: 1.5rem; font-weight: 700; color: #fff; letter-spacing: .05em; }
+  .nav-logo .tagline { font-size: .75rem; color: rgba(255,255,255,.55); margin-top: .25rem; }
+  .nav-logo .version { font-size: .7rem; color: rgba(255,255,255,.4); margin-top: .2rem; }
+
+  nav ul { list-style: none; }
+  nav ul li a {
+    display: block;
+    padding: .45rem 1.5rem;
+    color: rgba(255,255,255,.72);
+    text-decoration: none;
+    font-size: .82rem;
+    transition: background .15s, color .15s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: #fff; background: rgba(255,255,255,.07); }
+  nav ul li a.active { color: #fff; border-left-color: #5B9BD5; background: rgba(255,255,255,.08); }
+  nav ul li.section-header a {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.38);
+    cursor: default;
+    padding-top: 1.2rem;
+  }
+  nav ul li.section-header a:hover { background: none; }
+  nav ul li.sub a { padding-left: 2.25rem; font-size: .78rem; }
+
+  /* ── Main content ── */
+  main {
+    flex: 1;
+    min-width: 0;
+    background: var(--white);
+  }
+
+  /* ── Cover ── */
+  .cover {
+    background: linear-gradient(135deg, var(--navy) 0%, #1e3a6e 100%);
+    color: #fff;
+    padding: 6rem 4rem;
+    text-align: center;
+  }
+  .cover h1 {
+    font-size: 4rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    color: #fff;
+    margin-bottom: .5rem;
+  }
+  .cover .subtitle {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,.75);
+    margin-bottom: 2.5rem;
+  }
+  .cover-meta {
+    display: inline-flex;
+    gap: 2rem;
+    font-size: .85rem;
+    color: rgba(255,255,255,.55);
+    border-top: 1px solid rgba(255,255,255,.15);
+    padding-top: 1.5rem;
+    margin-top: 1rem;
+  }
+  .cover-meta a { color: rgba(255,255,255,.7); text-decoration: none; }
+  .cover-meta a:hover { color: #fff; }
+
+  /* ── Quick nav bar ── */
+  .quicknav {
+    background: var(--light);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 4rem;
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: .8rem;
+  }
+  .quicknav a { color: var(--steel); text-decoration: none; font-weight: 500; }
+  .quicknav a:hover { text-decoration: underline; }
+
+  /* ── Article sections ── */
+  article {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 4rem 5rem;
+  }
+
+  section { margin-bottom: 3.5rem; }
+
+  h1.section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--navy);
+    padding-bottom: .75rem;
+    border-bottom: 2px solid var(--steel);
+    margin-bottom: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--steel);
+    margin: 2rem 0 .75rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 1.5rem 0 .5rem;
+  }
+
+  p { margin-bottom: .9rem; }
+
+  ul, ol { padding-left: 1.5rem; margin-bottom: .9rem; }
+  li { margin-bottom: .3rem; }
+
+  a { color: var(--steel); }
+
+  /* ── Code ── */
+  code, .code-block {
+    font-family: "Courier New", Courier, monospace;
+    font-size: .85rem;
+  }
+  code {
+    background: var(--code);
+    padding: .1em .35em;
+    border-radius: 3px;
+    color: #1F2937;
+  }
+  .code-block {
+    background: var(--code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: .75rem 0 1rem;
+    color: #1F2937;
+    line-height: 1.5;
+    white-space: pre;
+  }
+
+  /* ── Note callout ── */
+  .note {
+    background: var(--light);
+    border-left: 4px solid var(--steel);
+    border-radius: 0 6px 6px 0;
+    padding: .85rem 1.25rem;
+    font-size: .9rem;
+    margin: 1rem 0;
+    color: #374151;
+  }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin: .75rem 0 1.25rem; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+  }
+  th {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: .6rem .9rem;
+  }
+  td {
+    padding: .55rem .9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--light); }
+  td code { font-size: .82rem; }
+
+  /* ── Prompt examples ── */
+  .prompt {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    border-radius: 6px;
+    padding: .85rem 1.25rem;
+    font-size: .9rem;
+    margin: .75rem 0;
+    color: #065F46;
+    font-style: italic;
+  }
+  .prompt::before { content: "\1F4AC  "; }
+
+  /* ── Section divider ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  /* ── Footer ── */
+  footer {
+    background: var(--navy);
+    color: rgba(255,255,255,.55);
+    text-align: center;
+    padding: 2rem;
+    font-size: .82rem;
+  }
+  footer a { color: rgba(255,255,255,.7); }
+
+  /* ── Print ── */
+  @media print {
+    nav, .quicknav { display: none; }
+    article { max-width: 100%; padding: 0; }
+    .cover { padding: 3rem 2rem; }
+  }
+
+  @media (max-width: 900px) {
+    nav { display: none; }
+    .cover { padding: 3rem 2rem; }
+    .cover h1 { font-size: 2.5rem; }
+    article { padding: 2rem; }
+    .quicknav { padding: .75rem 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ── Sidebar Navigation ───────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-logo">
+    <div class="brand">LLIAM</div>
+    <div class="tagline">AI PM Intelligence Platform</div>
+    <div class="version">User's Manual v1.0 · April 2026</div>
+  </div>
+  <ul>
+    <li><a href="#cover">Overview</a></li>
+    <li class="section-header"><a>Contents</a></li>
+    <li><a href="#s1">1. Introduction</a></li>
+    <li class="sub"><a href="#s1-1">1.1 What Is Lliam?</a></li>
+    <li class="sub"><a href="#s1-2">1.2 Who Is It For?</a></li>
+    <li class="sub"><a href="#s1-3">1.3 Core Principles</a></li>
+    <li><a href="#s2">2. Capabilities</a></li>
+    <li class="sub"><a href="#s2-1">2.1 PM Knowledge Base</a></li>
+    <li class="sub"><a href="#s2-2">2.2 Document Generation</a></li>
+    <li class="sub"><a href="#s2-3">2.3 Risk Intelligence</a></li>
+    <li class="sub"><a href="#s2-4">2.4 Daily Brief</a></li>
+    <li class="sub"><a href="#s2-5">2.5 Web Search</a></li>
+    <li class="sub"><a href="#s2-6">2.6 Voice Channel</a></li>
+    <li class="sub"><a href="#s2-7">2.7 Memory</a></li>
+    <li class="sub"><a href="#s2-8">2.8 Multi-Channel</a></li>
+    <li><a href="#s3">3. System Requirements</a></li>
+    <li><a href="#s4">4. Installation</a></li>
+    <li><a href="#s5">5. Configuration</a></li>
+    <li><a href="#s6">6. First Working Session</a></li>
+    <li><a href="#s7">7. Plugin Reference</a></li>
+    <li><a href="#s8">8. Knowledge Base Setup</a></li>
+    <li><a href="#s9">9. Voice & Phone</a></li>
+    <li><a href="#s10">10. Security &amp; Compliance</a></li>
+    <li><a href="#s11">11. Custom Plugins</a></li>
+    <li><a href="#s12">12. Troubleshooting</a></li>
+  </ul>
+</nav>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────── -->
+<main>
+
+<!-- Cover -->
+<div class="cover" id="cover">
+  <h1>LLIAM</h1>
+  <p class="subtitle">AI Project &amp; Program Management Intelligence Platform</p>
+  <div class="cover-meta">
+    <span>User's Manual v1.0</span>
+    <span>April 2026</span>
+    <span>Built by Jerome Davis</span>
+    <span><a href="https://github.com/jdavis-cyber/lliam_ai_agent" target="_blank">github.com/jdavis-cyber/lliam_ai_agent</a></span>
+    <span>MIT License</span>
+  </div>
+</div>
+
+<!-- Quick nav -->
+<div class="quicknav">
+  <a href="#s4">Quick Install</a>
+  <a href="#s6">First Session</a>
+  <a href="#s7">Plugin Reference</a>
+  <a href="#s8">Knowledge Base</a>
+  <a href="#s10">Security</a>
+  <a href="#s11">Custom Plugins</a>
+  <a href="#s12">Troubleshooting</a>
+</div>
+
+<article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 1 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s1">
+  <h1 class="section-title">1. Introduction</h1>
+
+  <h2 id="s1-1">1.1 What Is Lliam?</h2>
+  <p>Lliam is an AI-powered project management intelligence platform that runs entirely on your machine. It connects three things that enterprise project managers need but rarely get in one place: your organization's licensed PM standards library, the full PMI ontology, and Claude AI — all without sending your project data to third-party cloud services.</p>
+  <p>Every artifact Lliam generates, every risk it analyzes, and every knowledge base query it answers stays local. Embeddings are computed on-device. The database is encrypted at rest. The network gateway binds to localhost only.</p>
+
+  <h2 id="s1-2">1.2 Who Is Lliam For?</h2>
+  <ul>
+    <li>Project managers who want AI assistance generating charters, risk registers, RACI matrices, and status reports grounded in PMI methodology</li>
+    <li>Program managers running multi-project portfolios who need aggregated risk dashboards and cross-project correlation analysis</li>
+    <li>PMO teams who want to index their organization's licensed standards library (PMBOK, PRINCE2, SAFe, internal playbooks) and make it semantically searchable</li>
+    <li>Teams in regulated environments (DoD, federal, financial services) who cannot route project data through external AI services</li>
+  </ul>
+
+  <h2 id="s1-3">1.3 Core Principles</h2>
+  <p><strong>Local-first:</strong> All data stays on your machine. Embeddings are generated in-process. The database is encrypted at rest using AES-256-GCM. The gateway binds to localhost only — nothing is reachable from outside your machine unless you explicitly configure it.</p>
+  <p><strong>PMI-aligned:</strong> Every artifact, risk analysis, and ontology lookup is grounded in PMI standards — process groups, knowledge areas, risk categories, EVM formulas, and stakeholder engagement levels.</p>
+  <p><strong>Plugin-based:</strong> All capabilities are implemented as plugins. You can disable what you don't need, configure what you do, and write your own in TypeScript.</p>
+  <p><strong>Secure by design:</strong> Encryption at rest, constant-time authentication, input validation via Zod schemas, plugin sandboxing via V8 isolates, and comprehensive audit logging of every tool invocation.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 2 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s2">
+  <h1 class="section-title">2. What Lliam Can Do</h1>
+
+  <h2 id="s2-1">2.1 PM Knowledge Base</h2>
+  <p>Configure the knowledge base to point at your organization's licensed PM standards directory — PMBOK, PRINCE2, SAFe, internal playbooks, SOW templates, governance frameworks — and Lliam recursively indexes everything. Text is chunked, embeddings are generated on-device using Transformers.js (<code>all-MiniLM-L6-v2</code>), and everything is stored in encrypted SQLite.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Tool</th><th>Description</th></tr>
+    <tr><td><code>search_knowledge_base</code></td><td>Semantic search over indexed documents with source attribution</td></tr>
+    <tr><td><code>lookup_pm_concept</code></td><td>Structured lookup against the built-in PMI ontology (always available, no setup required)</td></tr>
+    <tr><td><code>list_indexed_sources</code></td><td>Inventory of indexed documents with chunk counts and timestamps</td></tr>
+  </table></div>
+
+  <div class="note">Even without a configured knowledge base, the built-in PMI ontology covers all PMBOK process groups, knowledge areas, risk categories, EVM formulas, and stakeholder engagement levels via <code>lookup_pm_concept</code>.</div>
+
+  <h2 id="s2-2">2.2 PM Document Generation</h2>
+  <p>Lliam generates eight PMI-aligned project artifacts on demand. All artifacts are saved as Markdown files to your configured output directory and returned inline for immediate use.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Tool</th><th>Artifact Produced</th></tr>
+    <tr><td><code>generate_project_charter</code></td><td>Formal project authorization with objectives, scope, budget, timeline, stakeholder list, and sponsor signoff block</td></tr>
+    <tr><td><code>generate_risk_register</code></td><td>Structured risk log with ID, category, probability, impact, owner, and response strategy</td></tr>
+    <tr><td><code>generate_raci_matrix</code></td><td>Responsibility assignment matrix mapping work packages to roles with R/A/C/I designations</td></tr>
+    <tr><td><code>generate_stakeholder_engagement_plan</code></td><td>Stakeholder engagement levels (Unaware through Leading) with tailored strategies and communication cadence</td></tr>
+    <tr><td><code>generate_status_report</code></td><td>RAG health indicators (schedule, budget, scope, quality), accomplishments, planned work, issues, and active risks</td></tr>
+    <tr><td><code>generate_wbs_dictionary</code></td><td>Work package definitions with deliverables, acceptance criteria, and responsible parties</td></tr>
+    <tr><td><code>generate_lessons_learned</code></td><td>Phase closeout document categorizing lessons by impact (positive/negative/neutral) with action items</td></tr>
+    <tr><td><code>generate_change_request</code></td><td>CCB-ready change request with impact assessment across scope, schedule, cost, and quality dimensions</td></tr>
+  </table></div>
+
+  <h2 id="s2-3">2.3 Risk Intelligence</h2>
+  <p>Lliam provides a full PMI risk lifecycle plus quantitative analysis — from identification through Monte Carlo simulation and portfolio aggregation.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Tool</th><th>Description</th></tr>
+    <tr><td><code>identify_risks</code></td><td>Category-structured risk identification across all nine PMI risk categories</td></tr>
+    <tr><td><code>analyze_risk</code></td><td>P×I scoring, risk matrix position, response strategy recommendation, optional EMV calculation</td></tr>
+    <tr><td><code>plan_risk_response</code></td><td>Action plan with residual risk estimate and contingency (fallback) plan</td></tr>
+    <tr><td><code>create_risk_register</code></td><td>Complete risk register sorted by score with high/medium/low summary statistics</td></tr>
+    <tr><td><code>monitor_risks</code></td><td>Compares current vs. original P×I scores; classifies each as Improving, Worsening, or Stable; flags escalations</td></tr>
+    <tr><td><code>simulate_risk_monte_carlo</code></td><td>Probabilistic modeling (PERT or triangular), 10,000 iterations default, P10–P90 confidence intervals</td></tr>
+    <tr><td><code>aggregate_portfolio_risks</code></td><td>Multi-project dashboard with RED/AMBER/GREEN health, top risks, category concentration, cross-project correlations</td></tr>
+  </table></div>
+
+  <h2 id="s2-4">2.4 Email &amp; Calendar Briefing</h2>
+  <p>The <code>daily_brief</code> tool pulls unread Gmail messages and Google Calendar events via the GWS CLI and returns a structured morning briefing. No credentials are stored in the plugin — authentication delegates to your existing GWS CLI session.</p>
+
+  <h2 id="s2-5">2.5 Web Search</h2>
+  <p>Real-time web search via Brave Search API. If no Brave API key is configured, Lliam falls back to DuckDuckGo automatically — no API key required for the fallback.</p>
+
+  <h2 id="s2-6">2.6 Voice Channel</h2>
+  <p>Real-time voice conversations via Google Gemini Live. The voice channel supports:</p>
+  <ul>
+    <li>WebSocket audio streaming (PCM16, 16 kHz)</li>
+    <li>Barge-in / interruption support</li>
+    <li>Function calling back into Lliam's full tool system</li>
+    <li>Phone call integration via Twilio Media Streams (mulaw/PCM16 transcoding)</li>
+  </ul>
+
+  <h2 id="s2-7">2.7 Memory System</h2>
+  <p>Persistent memory with hybrid vector + keyword search. Lliam remembers facts, preferences, decisions, and context across conversations. Auto-capture hooks extract memories from conversations; auto-recall hooks inject relevant memories into the system prompt before each interaction.</p>
+
+  <h2 id="s2-8">2.8 Multi-Channel Access</h2>
+  <p>Connect to Lliam through any of the following interfaces:</p>
+  <ul>
+    <li><strong>CLI chat</strong> — interactive terminal session</li>
+    <li><strong>WebSocket gateway</strong> — port 3000, JSON message protocol</li>
+    <li><strong>Telegram bot</strong> — grammy-based, contact allowlist for access control</li>
+    <li><strong>iMessage</strong> — via BlueBubbles</li>
+    <li><strong>Voice</strong> — Gemini Live on port 3001, Twilio phone integration on port 3002</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 3 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s3">
+  <h1 class="section-title">3. System Requirements</h1>
+
+  <h2>3.1 Hardware</h2>
+  <ul>
+    <li>macOS, Linux, or Windows with WSL2</li>
+    <li>4 GB RAM minimum — 8 GB recommended when using the knowledge base (Transformers.js loads the embedding model into memory)</li>
+    <li>500 MB disk space for Lliam and its dependencies; additional space for your knowledge base library</li>
+  </ul>
+
+  <h2>3.2 Software</h2>
+  <ul>
+    <li>Node.js 22 or higher</li>
+    <li>npm (included with Node.js)</li>
+    <li>Git</li>
+  </ul>
+
+  <h2>3.3 API Keys</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Key</th><th>Required / Optional</th></tr>
+    <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Required — Claude AI (core functionality)</td></tr>
+    <tr><td><code>BRAVE_API_KEY</code></td><td>Optional — Brave Search (DuckDuckGo fallback if unset)</td></tr>
+    <tr><td><code>GEMINI_API_KEY</code></td><td>Optional — voice channel</td></tr>
+    <tr><td><code>TELEGRAM_BOT_TOKEN</code></td><td>Optional — Telegram channel</td></tr>
+  </table></div>
+
+  <h2>3.4 Optional Tools</h2>
+  <ul>
+    <li><strong>GWS CLI</strong> — required for Gmail/Calendar daily briefing. Must be separately installed and authenticated.</li>
+    <li><strong>pdf-parse</strong> (npm) — required for indexing PDF files in the knowledge base.</li>
+    <li><strong>isolated-vm</strong> (npm) — required for sandboxed user-installed plugins.</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 4 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s4">
+  <h1 class="section-title">4. Installation</h1>
+  <p>Follow these steps from a fresh machine to a running Lliam instance.</p>
+
+  <h2>4.1 Clone the Repository</h2>
+  <div class="code-block">git clone https://github.com/jdavis-cyber/lliam_ai_agent.git
+cd lliam_ai_agent</div>
+
+  <h2>4.2 Install Core Dependencies</h2>
+  <div class="code-block">npm install</div>
+  <p>This installs all core dependencies: the Anthropic SDK, Express, sql.js, Zod, WebSocket, grammy, and keytar.</p>
+
+  <h2>4.3 Install Optional Dependencies</h2>
+  <p>For PDF indexing in the knowledge base:</p>
+  <div class="code-block">npm install pdf-parse</div>
+  <p>For plugin sandboxing (required for user-installed plugins in <code>~/.lliam/plugins/</code>):</p>
+  <div class="code-block">npm install isolated-vm</div>
+
+  <h2>4.4 Set Environment Variables</h2>
+  <p>Create a <code>.env</code> file in the project root, or export variables directly in your shell:</p>
+  <div class="code-block">export ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# Optional
+export BRAVE_API_KEY=BSA-your-brave-key
+export GEMINI_API_KEY=your-gemini-key
+export TELEGRAM_BOT_TOKEN=your-telegram-token
+export TWILIO_PUBLIC_URL=https://your-ngrok-url.ngrok.io</div>
+
+  <h2>4.5 Verify the Setup</h2>
+  <p>Before starting the full gateway, verify your API key is working:</p>
+  <div class="code-block">npm run chat</div>
+  <p>This starts an interactive CLI session with Claude directly (no plugin system). Type a message and press Enter. If you get a response, your API key is working. Press <kbd>Ctrl+C</kbd> to exit.</p>
+
+  <h2>4.6 Start the Full Gateway</h2>
+  <div class="code-block">npm run dev</div>
+  <p>Expected startup output:</p>
+  <div class="code-block">  KeyManager: ready (AES-256-GCM, key in memory only).
+  Plugins loaded: 9 (22 tools, 2 hooks)
+  Service started: pm-knowledge
+  Service started: gemini-voice-server
+  Gateway listening on http://127.0.0.1:3000</div>
+
+  <div class="note">On first run, KeyManager generates an encryption key and stores it in your OS keychain (macOS Keychain or Linux libsecret). This key encrypts all local databases — memory, knowledge base, and sessions.</div>
+
+  <h2>4.7 Connect to the Gateway</h2>
+  <p>Open a WebSocket connection to <code>ws://127.0.0.1:3000/ws</code> from any WebSocket client. Send messages in this JSON format:</p>
+  <div class="code-block">{ "type": "chat", "payload": { "message": "Generate a project charter for Project Alpha" } }</div>
+
+  <h2>4.8 Smoke Test</h2>
+  <p>Try these prompts to verify core features are working:</p>
+  <div class="prompt">Look up the Initiating process group from the PMI ontology</div>
+  <div class="prompt">Generate a project charter for a cloud migration project</div>
+  <div class="prompt">Identify risks for an ERP implementation in the Planning phase</div>
+  <div class="prompt">Run a Monte Carlo simulation for these work items: Design (min 5, likely 8, max 15 days), Build (min 10, likely 20, max 40 days), Test (min 3, likely 5, max 10 days)</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 5 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s5">
+  <h1 class="section-title">5. Configuration</h1>
+
+  <h2>5.1 Plugin Configuration</h2>
+  <p>Plugin settings are passed via the <code>pluginConfigs</code> object in your application code or config file.</p>
+
+  <h3>PM Knowledge Base (<code>executive.pm-knowledge</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>knowledgeBasePath</code></td><td>Absolute path to your standards library directory</td></tr>
+    <tr><td><code>chunkSize</code></td><td>Characters per chunk (default: 800)</td></tr>
+    <tr><td><code>chunkOverlap</code></td><td>Overlap between chunks (default: 150)</td></tr>
+    <tr><td><code>reindexOnStart</code></td><td>Force full re-index on every startup (default: false)</td></tr>
+  </table></div>
+
+  <h3>PM Documents (<code>executive.pm-documents</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>outputPath</code></td><td>Directory where generated artifacts are saved (default: <code>./pm-artifacts</code>)</td></tr>
+    <tr><td><code>defaultFormat</code></td><td>"markdown" or "structured" (default: "markdown")</td></tr>
+  </table></div>
+
+  <h3>Daily Brief (<code>executive.daily-brief</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>lookAheadDays</code></td><td>Days ahead for calendar scan (default: 1)</td></tr>
+    <tr><td><code>maxEmails</code></td><td>Maximum unread emails to surface (default: 10)</td></tr>
+  </table></div>
+
+  <h3>Gemini Voice (<code>executive.gemini-voice</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Option</th><th>Description</th></tr>
+    <tr><td><code>geminiApiKey</code></td><td>Google AI Studio API key</td></tr>
+    <tr><td><code>voicePort</code></td><td>WebSocket port for voice (default: 3001)</td></tr>
+    <tr><td><code>twilioPort</code></td><td>Twilio adapter port (default: 3002)</td></tr>
+    <tr><td><code>twilioPublicUrl</code></td><td>Public URL for Twilio webhook (e.g., your ngrok URL)</td></tr>
+    <tr><td><code>allowedPhoneNumbers</code></td><td>Array of E.164 phone numbers permitted to call</td></tr>
+  </table></div>
+
+  <h2>5.2 Disabling Plugins</h2>
+  <p>Pass plugin IDs to the <code>disabledPlugins</code> array in your config:</p>
+  <div class="code-block">disabledPlugins: ["executive.gemini-voice", "executive.notebooklm"]</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 6 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s6">
+  <h1 class="section-title">6. Your First Working Session</h1>
+  <p>A complete walkthrough of a typical PM working session with Lliam.</p>
+
+  <h2>6.1 Morning Briefing</h2>
+  <div class="prompt">Give me my daily brief</div>
+  <p>Lliam pulls your unread emails and today's calendar events and presents a structured summary. Requires GWS CLI to be installed and authenticated.</p>
+
+  <h2>6.2 Start a New Project</h2>
+  <div class="prompt">Generate a project charter for Project Titan. The sponsor is Maria Chen, VP Engineering. Objectives: migrate legacy ERP to cloud, reduce operating costs by 30%, complete within 12 months. Budget: $1.5M.</div>
+  <p>Lliam generates a PMI-aligned charter and saves it to your <code>pm-artifacts</code> directory.</p>
+
+  <h2>6.3 Identify and Analyze Risks</h2>
+  <div class="prompt">Identify risks for Project Titan — cloud ERP migration in the Planning phase</div>
+  <p>Lliam uses all nine PMI risk categories to produce a structured risk identification analysis. Then analyze a specific risk:</p>
+  <div class="prompt">Analyze this risk: limited cloud migration experience on the team may cause the data migration to take longer than planned, resulting in a 3-month schedule delay. Probability 4, Impact 4.</div>
+  <p>Lliam returns a P×I score of 16 (High), plots it on the risk matrix, and recommends a Transfer or Avoid strategy.</p>
+
+  <h2>6.4 Build the Risk Register</h2>
+  <div class="prompt">Create a risk register for Project Titan with these risks: [paste your risk list]</div>
+  <p>Lliam compiles a complete register sorted by score with high/medium/low summary breakdown.</p>
+
+  <h2>6.5 Run a Monte Carlo Simulation</h2>
+  <div class="prompt">Run a Monte Carlo simulation for Project Titan with these phases: Discovery (min 15, likely 20, max 35 days), Design (min 25, likely 40, max 60 days), Build (min 40, likely 60, max 100 days), Test (min 15, likely 25, max 40 days), Deploy (min 5, likely 10, max 20 days). Use PERT distribution.</div>
+  <p>Lliam runs 10,000 iterations and returns: P80 planning estimate, comparison to deterministic sum, recommended contingency reserve, and per-phase breakdown.</p>
+
+  <h2>6.6 Generate a Status Report</h2>
+  <div class="prompt">Generate a status report for Project Titan, Week of April 7. Accomplishments: completed requirements gathering, finalized vendor selection. Planned: begin architecture design, schedule stakeholder review. Issues: delayed security review. Risks: vendor contract negotiations extending timeline.</div>
+
+  <h2>6.7 Portfolio View</h2>
+  <div class="prompt">Aggregate portfolio risks for the Digital Transformation Portfolio across Project Titan, Project Mercury, and Project Atlas [provide risk arrays for each]</div>
+  <p>Lliam produces a portfolio dashboard with RED/AMBER/GREEN health per project, top risks across the portfolio, category concentration analysis, and cross-project correlation detection.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 7 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s7">
+  <h1 class="section-title">7. Plugin Reference</h1>
+
+  <h2>7.1 Core Plugins (Always Loaded)</h2>
+
+  <h3>core.echo — Echo Tool</h3>
+  <p>Diagnostic tool that echoes input back. Used for testing the plugin system.</p>
+
+  <h3>core.memory — Memory Tools</h3>
+  <p>Persistent memory across conversations with hybrid vector + keyword search.</p>
+  <ul>
+    <li><strong>Tools:</strong> <code>memory_store</code>, <code>memory_search</code>, <code>memory_forget</code>, <code>memory_list</code>, <code>memory_stats</code></li>
+    <li><strong>Hooks:</strong> <code>before_agent_start</code> (auto-recall), <code>agent_end</code> (auto-capture)</li>
+  </ul>
+
+  <h2>7.2 Executive Plugins</h2>
+
+  <h3>executive.pm-knowledge — PM Knowledge Base</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>search_knowledge_base</code>, <code>lookup_pm_concept</code>, <code>list_indexed_sources</code></li>
+    <li><strong>Service:</strong> <code>pm-knowledge</code> (initializes at startup, indexed on first boot)</li>
+  </ul>
+
+  <h3>executive.pm-documents — PM Document Generation</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>generate_project_charter</code>, <code>generate_risk_register</code>, <code>generate_raci_matrix</code>, <code>generate_stakeholder_engagement_plan</code>, <code>generate_status_report</code>, <code>generate_wbs_dictionary</code>, <code>generate_lessons_learned</code>, <code>generate_change_request</code></li>
+    <li><strong>Depends on:</strong> executive.pm-knowledge</li>
+  </ul>
+
+  <h3>executive.pm-risk — PM Risk Intelligence</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>identify_risks</code>, <code>analyze_risk</code>, <code>plan_risk_response</code>, <code>create_risk_register</code>, <code>monitor_risks</code>, <code>simulate_risk_monte_carlo</code>, <code>aggregate_portfolio_risks</code></li>
+    <li><strong>Depends on:</strong> executive.pm-knowledge</li>
+  </ul>
+
+  <h3>executive.daily-brief — Email &amp; Calendar Briefing</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>daily_brief</code></li>
+    <li><strong>Requires:</strong> GWS CLI installed and authenticated</li>
+  </ul>
+
+  <h3>executive.web-search — Web Search</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>web_search</code></li>
+    <li>Uses Brave Search API with DuckDuckGo fallback (no key required for fallback)</li>
+  </ul>
+
+  <h3>executive.notebooklm — NotebookLM Bridge</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>stage_to_notebooklm</code></li>
+    <li>Stages documents to Google Drive for import into a NotebookLM notebook</li>
+  </ul>
+
+  <h3>executive.gemini-voice — Gemini Live Voice Channel</h3>
+  <ul>
+    <li><strong>Tools:</strong> <code>voice_status</code></li>
+    <li><strong>Services:</strong> <code>gemini-voice-server</code> (port 3001), <code>twilio-media-bridge</code> (port 3002)</li>
+    <li>Real-time voice conversation via Gemini Live with Twilio phone integration</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 8 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s8">
+  <h1 class="section-title">8. Knowledge Base Setup</h1>
+
+  <h2>8.1 Prepare Your Standards Library</h2>
+  <p>Create a directory and populate it with your organization's licensed PM documentation:</p>
+  <div class="code-block">mkdir -p ~/pm-standards-library</div>
+
+  <p><strong>Supported file formats:</strong> PDF (<code>.pdf</code> — requires <code>npm install pdf-parse</code>), Markdown (<code>.md</code>), plain text (<code>.txt</code>).</p>
+  <p><strong>What to include:</strong></p>
+  <ul>
+    <li>PMBOK Guide (your organization's licensed copy)</li>
+    <li>PRINCE2 or SAFe guides</li>
+    <li>Internal delivery playbooks and methodology guides</li>
+    <li>SOW templates, risk threshold policies, governance frameworks</li>
+  </ul>
+
+  <h2>8.2 Configure the Path</h2>
+  <div class="code-block">"executive.pm-knowledge": {
+  "knowledgeBasePath": "/Users/yourname/pm-standards-library"
+}</div>
+
+  <h2>8.3 First Indexing Run</h2>
+  <p>Start Lliam. On first boot with a configured <code>knowledgeBasePath</code>, it will:</p>
+  <ol>
+    <li>Discover all <code>.pdf</code>, <code>.md</code>, and <code>.txt</code> files recursively</li>
+    <li>Extract text from each file</li>
+    <li>Split text into 800-character chunks with 150-character overlap</li>
+    <li>Generate embeddings for each chunk using <code>all-MiniLM-L6-v2</code> (on-device via ONNX)</li>
+    <li>Store everything in encrypted SQLite</li>
+  </ol>
+  <div class="code-block">  PM Knowledge: discovered 23 indexable files.
+  PM Knowledge: indexed "/path/to/PMBOK-7th.pdf" (847 chunks)
+  PM Knowledge: complete — 23 indexed, 0 unchanged.</div>
+
+  <h2>8.4 Subsequent Runs</h2>
+  <p>On subsequent startups, Lliam checks file modification times and only re-indexes files that have changed. Startup remains fast even with large libraries. To force a full re-index, set <code>reindexOnStart: true</code> in your config.</p>
+
+  <h2>8.5 Verify the Index</h2>
+  <div class="prompt">List all indexed sources in the knowledge base</div>
+  <p>Returns a table of every indexed file with chunk counts and timestamps.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 9 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s9">
+  <h1 class="section-title">9. Voice Channel &amp; Phone Integration</h1>
+
+  <h2>9.1 Direct WebSocket (Microphone)</h2>
+  <p>Any WebSocket client that streams PCM16 audio at 16 kHz can connect directly to <code>ws://127.0.0.1:3001</code>. Gemini Live handles turn-taking, barge-in, and function calling back into Lliam's tools.</p>
+
+  <h2>9.2 Twilio Phone Integration</h2>
+  <ol>
+    <li>Start an ngrok tunnel: <code>ngrok http 3002</code></li>
+    <li>Set the environment variable: <code>export TWILIO_PUBLIC_URL=https://abc123.ngrok.io</code></li>
+    <li>Configure your Twilio phone number's voice webhook: <code>POST https://abc123.ngrok.io/twilio/voice</code></li>
+    <li>Start Lliam. The Twilio adapter will serve TwiML at <code>POST /twilio/voice</code> and accept the Media Stream WebSocket at <code>/twilio/media</code></li>
+    <li>Call your Twilio number. Lliam transcodes mulaw 8 kHz audio to PCM16 16 kHz for Gemini, and converts responses back to mulaw for delivery to the caller</li>
+  </ol>
+
+  <h2>9.3 Phone Number Allowlist</h2>
+  <p>To restrict who can call, set <code>allowedPhoneNumbers</code> in the gemini-voice plugin config:</p>
+  <div class="code-block">"allowedPhoneNumbers": ["+15551234567", "+15559876543"]</div>
+  <p>Calls from unlisted numbers are rejected with a 4003 close code.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 10 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s10">
+  <h1 class="section-title">10. Security &amp; Compliance</h1>
+
+  <h2>10.1 Encryption at Rest</h2>
+  <p>All local databases — memory, knowledge base, and sessions — are encrypted with AES-256-GCM. The encryption key is generated on first boot, stored in your OS keychain (macOS Keychain or Linux libsecret), and never written to disk in plaintext.</p>
+
+  <h2>10.2 Network Security</h2>
+  <p>The gateway binds to <code>127.0.0.1</code> only. No service is accessible from outside your machine unless you explicitly proxy it — for example, via ngrok for Twilio integration.</p>
+
+  <h2>10.3 Plugin Sandboxing</h2>
+  <p>User-installed plugins from <code>~/.lliam/plugins/</code> run in isolated V8 heaps via <code>isolated-vm</code>:</p>
+  <ul>
+    <li>Configurable memory limits (default 128 MB per plugin)</li>
+    <li>No access to Node.js APIs, the filesystem, or the network</li>
+    <li>Timeout enforcement: 5 seconds for registration, 30 seconds per tool call</li>
+    <li>Bridge-only communication through the <code>pluginAPI</code> interface</li>
+  </ul>
+  <p>Bundled plugins (in <code>plugins/core/</code> and <code>plugins/executive/</code>) are trusted and run in the main process.</p>
+
+  <h2>10.4 Security Controls</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Control</th><th>Implementation</th></tr>
+    <tr><td>Authentication</td><td><code>crypto.timingSafeEqual()</code> — constant-time comparison, even on length mismatch</td></tr>
+    <tr><td>Gateway binding</td><td><code>127.0.0.1</code> only — no external exposure by default</td></tr>
+    <tr><td>Channel allowlists</td><td>Sender ID validation before any message is processed</td></tr>
+    <tr><td>Input validation</td><td>Zod schemas on all inputs at gateway and plugin layers</td></tr>
+    <tr><td>Encryption at rest</td><td>AES-256-GCM (KeyManager) — knowledge DB, memory DB, sessions</td></tr>
+    <tr><td>Atomic writes</td><td>Temp-file-then-rename prevents data corruption on crash</td></tr>
+    <tr><td>Local embeddings</td><td>ONNX Runtime in-process — no text leaves the device for embedding</td></tr>
+    <tr><td>Plugin isolation</td><td>User plugins run in isolated-vm V8 isolates with memory limits</td></tr>
+    <tr><td>Credential handling</td><td>Environment variables only — no credentials in config files or code</td></tr>
+    <tr><td>Tool call auditing</td><td>Every tool invocation logged with duration, caller, and result status</td></tr>
+  </table></div>
+
+  <h2>10.5 Compliance Alignment</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Standard</th><th>How Addressed</th></tr>
+    <tr><td>NIST AI RMF 1.0</td><td>Govern, Map, Measure, and Manage functions addressed through plugin lifecycle management, tool audit logging, and risk register tooling</td></tr>
+    <tr><td>ISO 42001</td><td>AI management system controls reflected in plugin sandboxing, data minimization (local-only processing), and knowledge base access controls</td></tr>
+    <tr><td>ISO 27001</td><td>Access control via allowlists and API key authentication, audit logging via ToolExecutor, and incident response hooks</td></tr>
+  </table></div>
+
+  <h2>10.6 Audit Logging</h2>
+  <p>Every tool invocation is logged with: tool name and parameters, calling plugin ID, execution duration, result status (success/error), and timestamp.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 11 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s11">
+  <h1 class="section-title">11. Writing Custom Plugins</h1>
+
+  <h2>11.1 Plugin Structure</h2>
+  <p>Create a directory in <code>~/.lliam/plugins/</code> with two files:</p>
+  <div class="code-block">~/.lliam/plugins/my-plugin/
+  lliam.plugin.json    # manifest
+  index.ts             # implementation</div>
+
+  <h2>11.2 Manifest (lliam.plugin.json)</h2>
+  <div class="code-block">{
+  "id": "custom.my-plugin",
+  "name": "My Plugin",
+  "version": "1.0.0",
+  "description": "What my plugin does",
+  "kind": "general",
+  "dependencies": [],
+  "sandbox": { "enabled": true, "memoryLimitMB": 128 },
+  "configSchema": { "type": "object", "properties": {} }
+}</div>
+
+  <h2>11.3 Plugin Implementation (index.ts)</h2>
+  <div class="code-block">import type { PluginModule, PluginAPI } from "path/to/plugin/types";
+
+const myPlugin: PluginModule = {
+  id: "custom.my-plugin",
+  name: "My Plugin",
+  version: "1.0.0",
+
+  register(api: PluginAPI) {
+    api.registerTool({
+      name: "my_tool",
+      description: "What this tool does",
+      parameters: {
+        type: "object",
+        properties: {
+          input: { type: "string", description: "Tool input" },
+        },
+        required: ["input"],
+      },
+      async execute(_toolCallId, params) {
+        return { content: "Processed: " + String(params.input) };
+      },
+    });
+
+    api.logger.info("My plugin registered");
+  },
+};
+
+export default myPlugin;</div>
+
+  <h2>11.4 Plugin API Reference</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>api.registerTool({ name, description, parameters, execute })</code></td><td>Register a tool callable by Claude</td></tr>
+    <tr><td><code>api.registerHook(hookName, handler, { priority })</code></td><td>Hook into agent lifecycle events</td></tr>
+    <tr><td><code>api.registerService({ id, start, stop })</code></td><td>Register a background service</td></tr>
+    <tr><td><code>api.registerCommand({ name, execute })</code></td><td>Register a slash command</td></tr>
+    <tr><td><code>api.getService(serviceId)</code></td><td>Access another plugin's registered service</td></tr>
+    <tr><td><code>api.pluginConfig</code></td><td>Your plugin's configuration object</td></tr>
+    <tr><td><code>api.logger</code></td><td>Scoped logger: info, warn, error, debug</td></tr>
+    <tr><td><code>api.resolvePath(path)</code></td><td>Resolve <code>~/...</code> paths to absolute paths</td></tr>
+  </table></div>
+
+  <h2>11.5 Lifecycle Hooks</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Hook</th><th>Behavior</th></tr>
+    <tr><td><code>before_agent_start</code></td><td>Inject context into system prompt — modifying, sequential</td></tr>
+    <tr><td><code>agent_end</code></td><td>Post-processing after agent completes — fire-and-forget</td></tr>
+    <tr><td><code>before_tool_call</code></td><td>Inspect, modify, or block tool calls — modifying, sequential</td></tr>
+    <tr><td><code>after_tool_call</code></td><td>Observe tool results — fire-and-forget</td></tr>
+    <tr><td><code>message_received</code></td><td>Observe inbound messages — fire-and-forget</td></tr>
+    <tr><td><code>message_sending</code></td><td>Modify or cancel outbound messages — modifying, sequential</td></tr>
+    <tr><td><code>session_start / session_end</code></td><td>Session lifecycle — fire-and-forget</td></tr>
+    <tr><td><code>gateway_start / gateway_stop</code></td><td>Server lifecycle — fire-and-forget</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 12 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section id="s12">
+  <h1 class="section-title">12. Troubleshooting</h1>
+
+  <h2>"ANTHROPIC_API_KEY not set"</h2>
+  <p>Export the environment variable or add it to a <code>.env</code> file in the project root. Lliam uses dotenv and will pick it up automatically on the next start.</p>
+
+  <h2>"Failed to initialize Transformers.js embedding provider"</h2>
+  <p><code>@xenova/transformers</code> is not installed. It is an optional dependency — the PMI ontology and document generation tools work without it. Only knowledge base semantic search requires it:</p>
+  <div class="code-block">npm install @xenova/transformers</div>
+
+  <h2>"No documents indexed"</h2>
+  <p>Verify that <code>knowledgeBasePath</code> is set in your plugin config and points to a valid directory containing <code>.pdf</code>, <code>.md</code>, or <code>.txt</code> files.</p>
+
+  <h2>"PDF parsing requires pdf-parse"</h2>
+  <div class="code-block">npm install pdf-parse</div>
+
+  <h2>Plugin fails to load</h2>
+  <p>Check the diagnostic output at startup. Common causes:</p>
+  <ul>
+    <li>Invalid <code>lliam.plugin.json</code> — must pass Zod schema validation</li>
+    <li>Module ID in code doesn't match the ID in the manifest</li>
+    <li>Missing entry point (<code>index.ts</code> or <code>index.js</code>)</li>
+    <li>Unresolved dependency — listed in the <code>dependencies</code> array but not found</li>
+  </ul>
+
+  <h2>Voice channel not starting</h2>
+  <p>Verify <code>GEMINI_API_KEY</code> is set. Check that port 3001 is not in use:</p>
+  <div class="code-block">lsof -i :3001</div>
+
+  <h2>Twilio calls not connecting</h2>
+  <p>Verify <code>TWILIO_PUBLIC_URL</code> is set and your ngrok tunnel is running. Check that the Twilio phone number's voice webhook points to <code>your-url/twilio/voice</code> using the POST method.</p>
+
+  <h2>Gateway won't start (port conflict)</h2>
+  <div class="code-block">lsof -i :3000</div>
+
+  <h2>"KeyManager not initialized"</h2>
+  <p>The OS keychain must be unlocked. On macOS, unlock your Keychain in Keychain Access. In a CI or Docker environment, configure a fallback key via environment variable.</p>
+</section>
+
+</article>
+
+<footer>
+  Lliam User's Manual v1.0 &nbsp;|&nbsp; April 2026 &nbsp;|&nbsp; MIT License &nbsp;|&nbsp;
+  <a href="https://github.com/jdavis-cyber/lliam_ai_agent" target="_blank">github.com/jdavis-cyber/lliam_ai_agent</a>
+</footer>
+
+</main>
+</div>
+
+<script>
+// Highlight active nav item on scroll
+const sections = document.querySelectorAll('section[id], div[id="cover"]');
+const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { threshold: 0.15 });
+
+sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
